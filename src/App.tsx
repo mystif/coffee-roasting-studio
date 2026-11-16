@@ -5,6 +5,7 @@ import { DiagnosticsScreen } from './screens/DiagnosticsScreen'
 import { HistoryScreen } from './screens/HistoryScreen'
 import { LiveScreen } from './screens/LiveScreen'
 import { RoastDetailScreen } from './screens/RoastDetailScreen'
+import { ProfilesScreen } from './screens/ProfilesScreen'
 import { useRoute } from './ui/nav'
 
 export default function App() {
@@ -25,6 +26,8 @@ export default function App() {
       return <RoastDetailScreen id={r.id} />
     case 'coffees':
       return <CoffeesScreen />
+    case 'profiles':
+      return <ProfilesScreen />
     default:
       return <LiveScreen />
   }

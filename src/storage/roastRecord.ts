@@ -4,6 +4,7 @@ import { findEvent } from '../domain/events'
 import { phaseStats, type PhaseStats } from '../domain/phases'
 import type { LiveSnapshot } from '../live/LiveSession'
 import type { RoastState } from '../live/roastStore'
+import type { RefChoice } from './db'
 
 export const RECORD_SCHEMA = 1
 
@@ -27,6 +28,8 @@ export interface RoastRecord {
   events: RoastEvent[]
   controls: ControlChange[]
   phases: PhaseStats | null
+  /** reference the roast was compared against while roasting */
+  reference?: RefChoice | null
   backedUp: boolean
 }
 
@@ -64,6 +67,7 @@ export function buildRecord(snap: LiveSnapshot, roast: RoastState, id: string, n
     events,
     controls: roast.controls.map(shift),
     phases: phaseStats(events, drop?.t ?? t[t.length - 1] ?? 0),
+    reference: roast.reference,
     backedUp: false,
   }
 }

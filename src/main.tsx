@@ -4,6 +4,7 @@ import './index.css'
 import App from './App'
 import { initPersistence } from './storage/persistence'
 import { initPwa } from './pwa'
+import './live/referenceState'
 
 void initPersistence()
 initPwa()

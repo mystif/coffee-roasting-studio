@@ -14,7 +14,8 @@ import {
 } from '../live/runtime'
 import { CURVE_COLORS, LiveChart, fmtTime, type ChartOverlay } from '../ui/LiveChart'
 import { ClayButton } from '../ui/clay'
-import { ControlsBar, EventPanel, PhaseStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
+import { ControlsBar, EventPanel, PhaseStrip, ReferenceStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
+import { referenceState } from '../live/referenceState'
 import { NavTabs } from '../ui/nav'
 import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
 
@@ -49,9 +50,10 @@ export function LiveScreen() {
   const drop = findEvent(state.events, 'DROP')
   const roastTime = now === null ? null : charge ? (drop?.t ?? now) - charge.t : state.startT !== null ? now - state.startT : null
 
+  const ref = referenceState.use()
   const overlay: ChartOverlay = useMemo(
-    () => ({ events: state.events, controls: state.controls, chargeT: charge?.t ?? null, now }),
-    [state.events, state.controls, charge?.t, now],
+    () => ({ events: state.events, controls: state.controls, chargeT: charge?.t ?? null, now, reference: ref.curve }),
+    [state.events, state.controls, charge?.t, now, ref.curve],
   )
 
   useKeyboardShortcuts()
@@ -145,6 +147,17 @@ export function LiveScreen() {
       </div>
 
       <PhaseStrip state={state} now={now} />
+      {ref.curve && state.status !== 'finished' && (
+        <ReferenceStrip
+          curve={ref.curve}
+          roastTime={charge && now !== null ? (drop?.t ?? now) - charge.t : null}
+          bt={bt}
+          ror={ror}
+          afterTP={!!findEvent(state.events, 'TP')}
+          charged={!!charge}
+        />
+      )}
+      {ref.missing && <p className="text-xs text-amber-300">Vybraná reference už neexistuje.</p>}
 
       <div className="flex min-h-0 flex-1 gap-3">
         <div className="relative min-w-0 flex-1 rounded-3xl bg-[#1b1d23] p-3 shadow-[inset_0_2px_10px_rgba(0,0,0,.45)]">

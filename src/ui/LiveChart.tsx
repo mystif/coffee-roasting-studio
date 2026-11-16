@@ -4,6 +4,7 @@ import 'uplot/dist/uPlot.min.css'
 import type { LiveSnapshot } from '../live/LiveSession'
 import { CONTROL_UNIT, EVENT_SHORT, findEvent, type ControlChange, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR } from '../domain/phases'
+import type { ReferenceCurve } from '../domain/reference'
 
 export const CURVE_COLORS = { bt: '#5aa9ff', et: '#ff6b5a', ror: '#ffd166' }
 
@@ -22,6 +23,8 @@ export interface ChartOverlay {
   chargeT: number | null
   /** session time where the roast ends (DROP), phases are drawn up to `now` before that */
   now: number | null
+  /** background curve, aligned at CHARGE (drawn only once CHARGE is known) */
+  reference?: ReferenceCurve | null
 }
 
 interface Props {
@@ -67,7 +70,8 @@ export function LiveChart({ snap, overlay, follow, onFollowChange }: Props) {
             if (!followRef.current && userRange.current) return userRange.current
             const last = Number.isFinite(max) ? max : 0
             const c = overlayRef.current.chargeT
-            if (c !== null) return [Math.max(0, c - 30), Math.max(c + 720, last + 60)]
+            const refEnd = overlayRef.current.reference?.t.at(-1) ?? 0
+            if (c !== null) return [Math.max(0, c - 30), Math.max(c + 720, c + Math.min(refEnd, 1500) + 30, last + 60)]
             return last < 540 ? [0, Math.max(600, last + 60)] : [last - 540, last + 60]
           },
         },
@@ -110,7 +114,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange }: Props) {
         { label: 'RoR', scale: 'ror', stroke: CURVE_COLORS.ror, width: 2, spanGaps: false },
       ],
       hooks: {
-        drawClear: [(u) => drawPhases(u, overlayRef.current)],
+        drawClear: [(u) => drawPhases(u, overlayRef.current), (u) => drawReference(u, overlayRef.current)],
         draw: [(u) => drawMarks(u, overlayRef.current)],
         setSelect: [
           (u) => {
@@ -236,6 +240,52 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.fillStyle = color[c.kind]
     ctx.fillRect(x, y, 2 * dpr, 14 * dpr)
     ctx.fillText(label, x + 4 * dpr, y + 1.5 * dpr)
+  }
+  ctx.restore()
+}
+
+function drawReference(u: uPlot, o: ChartOverlay) {
+  const ref = o.reference
+  if (!ref || o.chargeT === null) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio
+  const { left, top, width, height } = u.bbox
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(left, top, width, height)
+  ctx.clip()
+  const line = (v: (number | null)[], scale: string, color: string, w: number) => {
+    ctx.strokeStyle = color
+    ctx.lineWidth = w * dpr
+    ctx.setLineDash([6 * dpr, 5 * dpr])
+    ctx.beginPath()
+    let pen = false
+    for (let i = 0; i < ref.t.length; i++) {
+      const y = v[i]
+      if (y === null) {
+        pen = false
+        continue
+      }
+      const px = u.valToPos(o.chargeT! + ref.t[i], 'x', true)
+      const py = u.valToPos(y, scale, true)
+      if (pen) ctx.lineTo(px, py)
+      else ctx.moveTo(px, py)
+      pen = true
+    }
+    ctx.stroke()
+  }
+  line(ref.et, 'temp', 'rgba(255,107,90,.38)', 1.5)
+  line(ref.bt, 'temp', 'rgba(90,169,255,.55)', 2)
+  line(ref.ror, 'ror', 'rgba(255,209,102,.40)', 1.5)
+  ctx.setLineDash([])
+  ctx.font = `${500} ${10 * dpr}px Inter, system-ui, sans-serif`
+  ctx.textBaseline = 'bottom'
+  for (const e of ref.events) {
+    if (e.type === 'CHARGE' || e.type === 'TP') continue
+    const x = u.valToPos(o.chargeT + e.t, 'x', true)
+    ctx.fillStyle = 'rgba(255,255,255,.35)'
+    ctx.fillRect(x, top + height - 34 * dpr - 52 * dpr, dpr, 10 * dpr)
+    ctx.fillText(`ref ${EVENT_SHORT[e.type]}`, x + 3 * dpr, top + height - 76 * dpr)
   }
   ctx.restore()
 }

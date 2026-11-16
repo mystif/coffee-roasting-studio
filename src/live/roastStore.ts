@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 import { detectCharge, detectDrop, detectDry, detectTP } from '../domain/autodetect'
 import { findEvent, type ControlChange, type ControlKind, type EventType, type RoastEvent } from '../domain/events'
 import type { DataSource, LiveSession, LiveSnapshot } from './LiveSession'
+import type { RefChoice } from '../storage/db'
 
 export type RoastStatus = 'ready' | 'roasting' | 'finished'
 
@@ -11,6 +12,7 @@ export interface RoastState {
   source: DataSource | null
   coffee: string
   coffeeId: string | null
+  reference: RefChoice | null
   greenWeightG: number | null
   roastedWeightG: number | null
   notes: string
@@ -41,6 +43,7 @@ const initial = (): RoastState => ({
   source: null,
   coffee: '',
   coffeeId: null,
+  reference: null,
   greenWeightG: null,
   roastedWeightG: null,
   notes: '',
@@ -65,7 +68,7 @@ export class RoastStore {
   subscribe = (fn: () => void) => (this.listeners.add(fn), () => this.listeners.delete(fn))
   getSnapshot = () => this.state
 
-  start(meta: { coffee: string; coffeeId?: string | null; greenWeightG: number | null }) {
+  start(meta: { coffee: string; coffeeId?: string | null; greenWeightG: number | null; reference?: RefChoice | null }) {
     const snap = this.session.getSnapshot()
     const now = lastT(snap)
     this.undoStack = []
@@ -75,6 +78,7 @@ export class RoastStore {
       source: snap.source,
       coffee: meta.coffee,
       coffeeId: meta.coffeeId ?? null,
+      reference: meta.reference !== undefined ? meta.reference : this.state.reference,
       greenWeightG: meta.greenWeightG,
       current: this.state.current,
       startT: now,
@@ -134,7 +138,7 @@ export class RoastStore {
     this.set({ status: 'finished' })
   }
 
-  update(patch: Partial<Pick<RoastState, 'roastedWeightG' | 'notes' | 'coffee' | 'coffeeId' | 'greenWeightG' | 'savedId'>>) {
+  update(patch: Partial<Pick<RoastState, 'roastedWeightG' | 'notes' | 'coffee' | 'coffeeId' | 'greenWeightG' | 'savedId' | 'reference'>>) {
     this.set(patch)
   }
 
@@ -146,13 +150,19 @@ export class RoastStore {
 
   /** Back to "ready", keeping coffee, weight and control positions as defaults. */
   newRoast() {
-    const { coffee, coffeeId, greenWeightG, current } = this.state
+    const { coffee, coffeeId, greenWeightG, current, reference } = this.state
     this.undoStack = []
-    this.set({ ...initial(), coffee, coffeeId, greenWeightG, current })
+    this.set({ ...initial(), coffee, coffeeId, greenWeightG, current, reference })
   }
 
   /** Pre-fills the next roast (e.g. "duplicate as new"). Ignored while roasting. */
-  prepare(meta: { coffee: string; coffeeId: string | null; greenWeightG: number | null; current?: Partial<Record<ControlKind, number>> }) {
+  prepare(meta: {
+    coffee: string
+    coffeeId: string | null
+    greenWeightG: number | null
+    current?: Partial<Record<ControlKind, number>>
+    reference?: RefChoice | null
+  }) {
     if (this.state.status === 'roasting') return false
     this.undoStack = []
     this.set({
@@ -160,6 +170,7 @@ export class RoastStore {
       coffee: meta.coffee,
       coffeeId: meta.coffeeId,
       greenWeightG: meta.greenWeightG,
+      reference: meta.reference ?? null,
       // only defined values override the current positions
       current: {
         ...this.state.current,

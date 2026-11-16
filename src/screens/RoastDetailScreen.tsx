@@ -7,6 +7,7 @@ import type { LiveSnapshot } from '../live/LiveSession'
 import { roast } from '../live/runtime'
 import { flushBackups } from '../storage/backup'
 import { addCoffee, emptyCoffee } from '../storage/coffees'
+import { createProfileFromRoast, roastChoice } from '../storage/profiles'
 import { db } from '../storage/db'
 import { fmtDate, fmtKg, roastSummary } from '../storage/roastQueries'
 import { lossPct, type RoastRecord } from '../storage/roastRecord'
@@ -64,9 +65,18 @@ function Detail({ r }: { r: RoastRecord }) {
       coffeeId: r.coffeeId,
       greenWeightG: r.greenWeightG,
       current: { gas: first('gas'), air: first('air'), drum: first('drum') },
+      reference: findEvent(r.events, 'CHARGE') ? roastChoice(r) : null, // this roast as background curve
     })
     if (!ok) return alert('Právě probíhá pražení. Nové připravíš po jeho dokončení.')
     go('#/')
+  }
+
+  const saveProfile = async () => {
+    if (!findEvent(r.events, 'CHARGE')) return alert('Pražení nemá Charge – nedá se použít jako profil.')
+    const name = prompt('Název profilu', `${r.coffee || 'Profil'} · ${fmtDate(r.roastDate)}`)
+    if (name === null) return
+    await createProfileFromRoast(r, name)
+    go('#/profily')
   }
 
   const remove = async () => {
@@ -80,7 +90,10 @@ function Detail({ r }: { r: RoastRecord }) {
       title={`${r.coffee || 'Bez názvu'} · ${fmtDate(r.roastDate)}`}
       actions={
         <>
-          <ClayButton variant="primary" onClick={duplicate} title="Připraví nové pražení se stejnou kávou, hmotností a výchozím plynem/vzduchem/bubnem">
+          <ClayButton onClick={() => void saveProfile()} title="Uloží křivku, události a plán plynu/vzduchu jako profil">
+            Uložit jako profil
+          </ClayButton>
+          <ClayButton variant="primary" onClick={duplicate} title="Připraví nové pražení se stejnou kávou, hmotností a výchozím plynem/vzduchem/bubnem – a toto pražení jako referenční křivku">
             Duplikovat jako nové
           </ClayButton>
           <ClayButton onClick={() => go('#/historie')}>Zpět</ClayButton>

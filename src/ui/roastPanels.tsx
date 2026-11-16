@@ -2,8 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import { addCoffee, emptyCoffee } from '../storage/coffees'
 import { db } from '../storage/db'
+import { profileChoice } from '../storage/profiles'
 import { EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR, PHASE_LABEL, currentPhase, phaseStats } from '../domain/phases'
+import { deviation, upcoming } from '../domain/reference'
 import { AIR_PRESETS, CONTROL_LIMITS, type RoastState } from '../live/roastStore'
 import { roast } from '../live/runtime'
 import { ClayButton } from './clay'
@@ -183,6 +185,18 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
   }, [state.coffee, state.greenWeightG])
   const name = coffee.trim()
   const match = coffees?.find((c) => c.name.toLowerCase() === name.toLowerCase())
+  const profiles = useLiveQuery(() => db.profiles.orderBy('name').toArray(), [])
+  // profiles of the chosen coffee first
+  const sortedProfiles = [...(profiles ?? [])].sort(
+    (a, b) => Number(b.coffeeId === match?.id && !!match) - Number(a.coffeeId === match?.id && !!match),
+  )
+  const refKey = state.reference ? `${state.reference.kind}:${state.reference.id}` : ''
+  const chooseRef = (key: string) => {
+    if (!key) return roast.update({ reference: null })
+    if (key === refKey) return
+    const p = profiles?.find((x) => `profile:${x.id}` === key)
+    if (p) roast.update({ reference: profileChoice(p) })
+  }
   const start = async () => {
     // typed name not in the list yet → add it, so it is one click next time
     const linked = match ?? (name ? await addCoffee({ ...emptyCoffee(), name }) : null)
@@ -209,6 +223,22 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
             </option>
           ))}
         </datalist>
+      </label>
+      <label className="flex w-72 flex-col gap-1 text-xs text-zinc-400">
+        Referenční profil
+        <select
+          value={refKey}
+          onChange={(e) => chooseRef(e.target.value)}
+          className="rounded-xl bg-[#16171d] px-3 py-2 text-base text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+        >
+          <option value="">bez reference</option>
+          {state.reference?.kind === 'roast' && <option value={refKey}>Pražení: {state.reference.label}</option>}
+          {sortedProfiles.map((p) => (
+            <option key={p.id} value={`profile:${p.id}`}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="flex w-40 flex-col gap-1 text-xs text-zinc-400">
         Zelená káva (kg)
@@ -399,5 +429,68 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</div>
       <div className="text-xl font-semibold tabular-nums">{value}</div>
     </div>
+  )
+}
+
+// ── live comparison with the reference ─────────────────────
+
+export function ReferenceStrip(props: {
+  curve: import('../domain/reference').ReferenceCurve
+  roastTime: number | null
+  bt: number | null
+  ror: number | null
+  afterTP: boolean
+  charged: boolean
+}) {
+  const { curve, roastTime } = props
+  if (!props.charged || roastTime === null)
+    return (
+      <div className={`${CARD} px-4 py-2 text-sm text-zinc-400`}>
+        Reference <b className="text-zinc-200">{curve.label}</b> – zarovná se při Charge.
+      </div>
+    )
+  const d = deviation(curve, roastTime, props.bt, props.ror, props.afterTP)
+  const next = upcoming(curve, roastTime)
+  const sign = (x: number, digits = 1) => `${x > 0 ? '+' : x < 0 ? '−' : '±'}${Math.abs(x).toFixed(digits)}`
+  const tone = (x: number | null, warn: number) => (x === null ? 'text-zinc-500' : Math.abs(x) >= warn ? 'text-amber-300' : 'text-emerald-300')
+  const ctrlName = { gas: 'plyn', air: 'vzduch', drum: 'buben' } as const
+  return (
+    <div className={`${CARD} flex items-center gap-5 px-4 py-2 text-sm`}>
+      <span className="max-w-56 truncate text-zinc-400" title={curve.label}>
+        vs <b className="text-zinc-200">{curve.label}</b>
+      </span>
+      <Dev label="Δ BT" value={d.dBT === null ? '—' : `${sign(d.dBT)} °C`} cls={tone(d.dBT, 3)} />
+      <Dev
+        label="Δ čas"
+        value={d.dTime === null ? '—' : `${d.dTime > 0 ? '+' : d.dTime < 0 ? '−' : '±'}${fmtTime(Math.abs(d.dTime))}`}
+        cls={tone(d.dTime, 15)}
+        title="+ = pomaleji než reference při stejné BT"
+      />
+      <Dev label="Δ RoR" value={d.dRoR === null ? '—' : sign(d.dRoR)} cls={tone(d.dRoR, 2)} />
+      <div className="ml-auto flex gap-5 text-zinc-300">
+        {next.event && (
+          <span>
+            {EVENT_LABEL[next.event.type]} v {fmtTime(next.event.t)}
+            {next.event.bt != null && ` · ${next.event.bt.toFixed(1)}°`}{' '}
+            <span className="text-zinc-500">(za {fmtTime(next.event.t - roastTime)})</span>
+          </span>
+        )}
+        {next.control && (
+          <span>
+            {ctrlName[next.control.kind]} {String(next.control.value).replace('.', ',')} {next.control.kind === 'gas' ? 'kPa' : '%'}{' '}
+            <span className="text-zinc-500">za {fmtTime(next.control.t - roastTime)}</span>
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Dev({ label, value, cls, title }: { label: string; value: string; cls: string; title?: string }) {
+  return (
+    <span className="flex items-baseline gap-2" title={title}>
+      <span className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</span>
+      <span className={`text-lg font-semibold tabular-nums ${cls}`}>{value}</span>
+    </span>
   )
 }
