@@ -16,6 +16,12 @@ export interface AlogRoast {
   specialEvents: { idx: number; type: number; value: number; label: string }[]
   eventTypes: string[]
   computed: Record<string, number | null>
+  /** epoch seconds of t = 0 */
+  roastEpoch: number | null
+  uuid: string
+  beans: string
+  roastingNotes: string
+  cuppingNotes: string
 }
 
 type Dict = { [k: string]: PyValue }
@@ -49,6 +55,11 @@ export function parseAlog(src: string): AlogRoast {
       label: String(arr('specialeventsStrings')[k] ?? ''),
     })),
     eventTypes: arr('etypes').map(String),
+    roastEpoch: typeof o.roastepoch === 'number' ? o.roastepoch : null,
+    uuid: String(o.roastUUID ?? ''),
+    beans: String(o.beans ?? ''),
+    roastingNotes: String(o.roastingnotes ?? ''),
+    cuppingNotes: String(o.cuppingnotes ?? ''),
     computed: Object.fromEntries(
       Object.entries((o.computed as Dict) ?? {}).map(([k, v]) => [k, typeof v === 'number' ? v : null]),
     ),

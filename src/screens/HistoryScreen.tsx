@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { ClayButton } from '../ui/clay'
+import { ImportDialog, readAlogFiles } from '../ui/ImportDialog'
 import { db } from '../storage/db'
 import { fmtDate, fmtKg, roastSummary } from '../storage/roastQueries'
 import { fmtTime } from '../ui/LiveChart'
@@ -10,6 +12,9 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
   const coffees = useLiveQuery(() => db.coffees.orderBy('name').toArray(), [])
   const [q, setQ] = useState('')
   const filter = coffeeId ?? ''
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [importRows, setImportRows] = useState<Awaited<ReturnType<typeof readAlogFiles>> | null>(null)
+  const [notice, setNotice] = useState('')
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -36,11 +41,36 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
             ))}
           </select>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Hledat v názvu a poznámkách" className={`${inputCls} w-64`} />
+          <ClayButton onClick={() => fileInput.current?.click()} title="Vyber jeden nebo více souborů .alog">
+            Importovat z Artisanu
+          </ClayButton>
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".alog"
+            multiple
+            className="hidden"
+            onChange={async (e) => {
+              const files = [...(e.target.files ?? [])]
+              e.target.value = ''
+              if (files.length) setImportRows(await readAlogFiles(files))
+            }}
+          />
         </>
       }
     >
+      {importRows && (
+        <ImportDialog
+          initial={importRows}
+          onClose={(n) => {
+            setImportRows(null)
+            if (n) setNotice(`Importováno ${n} pražení z Artisanu.`)
+          }}
+        />
+      )}
+      {notice && <p className="mb-3 rounded-2xl bg-emerald-400/10 px-4 py-2 text-sm text-emerald-200 ring-1 ring-emerald-400/30">{notice}</p>}
       {roasts && roasts.length === 0 && (
-        <p className="text-zinc-400">Zatím žádné uložené pražení. Každé pražení se sem uloží automaticky po Finish.</p>
+        <p className="text-zinc-400">Zatím žádné uložené pražení. Každé pražení se sem uloží automaticky po Finish – a starší pražení z Artisanu sem dostaneš tlačítkem Importovat z Artisanu.</p>
       )}
       {rows.length > 0 && (
         <table className="w-full border-separate border-spacing-y-1.5 text-sm">
