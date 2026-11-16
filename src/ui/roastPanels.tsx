@@ -5,6 +5,7 @@ import { AIR_PRESETS, CONTROL_LIMITS, type RoastState } from '../live/roastStore
 import { roast } from '../live/runtime'
 import { ClayButton } from './clay'
 import { fmtTime } from './LiveChart'
+import { SaveStatus } from './storageUi'
 
 const CARD =
   'rounded-3xl bg-[#1f2128] shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_rgba(0,0,0,.35),0_10px_24px_rgba(0,0,0,.35)]'
@@ -287,7 +288,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
       <div>
         <p className="text-xs uppercase tracking-wide text-zinc-400">Vyhodnocení pražení</p>
         <h2 className="text-xl font-semibold">{state.coffee || 'Bez názvu'}</h2>
-        {state.source === 'replay' && <p className="text-xs font-semibold text-amber-300">Přehraný záznam – ne živé pražení</p>}
+        <SaveStatus source={state.source} savedId={state.savedId} />
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
         <Stat label="Celkem" value={stats ? fmtTime(stats.total) : '—'} />

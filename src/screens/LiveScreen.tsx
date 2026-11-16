@@ -15,6 +15,7 @@ import {
 import { CURVE_COLORS, LiveChart, fmtTime, type ChartOverlay } from '../ui/LiveChart'
 import { ClayButton } from '../ui/clay'
 import { ControlsBar, EventPanel, PhaseStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
+import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
 
 const STATE: Record<ConnectionState, { label: string; dot: string }> = {
   idle: { label: 'Nepřipojeno', dot: 'bg-zinc-500' },
@@ -80,6 +81,7 @@ export function LiveScreen() {
         )}
         {error && <span className="text-sm text-rose-300">{error}</span>}
         <div className="ml-auto flex items-center gap-2">
+          <BackupChip />
           {state.status === 'roasting' && (
             <ClayButton variant="danger" onClick={() => roast.finish()} title="Ukončí pražení (přidá Drop, pokud chybí)">
               Finish
@@ -115,6 +117,9 @@ export function LiveScreen() {
         </div>
       </header>
 
+      <UpdateToast roasting={state.status === 'roasting'} />
+      <RestoredBanner />
+      <PersistError />
       {isReplay && (
         <div className="rounded-2xl bg-amber-400/15 px-4 py-1.5 text-center text-sm font-semibold text-amber-200 ring-1 ring-amber-400/40">
           PŘEHRÁVÁNÍ ZÁZNAMU „{snap.sourceLabel}“ – nejsou to živá data z pražičky

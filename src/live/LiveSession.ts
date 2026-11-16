@@ -12,6 +12,9 @@ export interface LiveSnapshot {
   bt: (number | null)[]
   et: (number | null)[]
   ror: (number | null)[]
+  /** ms timestamp of t = 0 (epoch for live data, virtual clock for replay) */
+  startAt: number | null
+  intervalMs: number
   version: number
 }
 
@@ -39,7 +42,17 @@ export class LiveSession {
     this.startAt = null
     this.lastAt = null
     this.intervalMs = intervalMs
-    this.snap = { ...empty(), source, sourceLabel: label }
+    this.snap = { ...empty(), source, sourceLabel: label, intervalMs }
+    this.emit()
+  }
+
+  /** Restores a buffer saved before a reload; new readings continue after a gap. */
+  restore(saved: LiveSnapshot) {
+    this.startAt = saved.startAt
+    this.intervalMs = saved.intervalMs
+    const lastT = saved.t.length ? saved.t[saved.t.length - 1] : null
+    this.lastAt = saved.startAt !== null && lastT !== null ? saved.startAt + lastT * 1000 : null
+    this.snap = { ...saved, version: saved.version + 1 }
     this.emit()
   }
 
@@ -70,7 +83,7 @@ export class LiveSession {
     btA.push(bt)
     etA.push(et)
     rorA.push(lastRoR(t, btA, this.rorOpts))
-    this.snap = { ...s, t, bt: btA, et: etA, ror: rorA, version: s.version + 1 }
+    this.snap = { ...s, t, bt: btA, et: etA, ror: rorA, startAt: this.startAt, version: s.version + 1 }
     this.emit()
   }
 
@@ -80,5 +93,5 @@ export class LiveSession {
 }
 
 function empty(): LiveSnapshot {
-  return { source: null, sourceLabel: '', t: [], bt: [], et: [], ror: [], version: 0 }
+  return { source: null, sourceLabel: '', t: [], bt: [], et: [], ror: [], startAt: null, intervalMs: 1000, version: 0 }
 }

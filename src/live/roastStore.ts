@@ -21,6 +21,8 @@ export interface RoastState {
   /** event types the user removed – auto detection must not add them back */
   suppressed: EventType[]
   canUndo: boolean
+  /** id of the stored roast record once saved (after Finish) */
+  savedId: string | null
 }
 
 export const CONTROL_LIMITS: Record<ControlKind, { min: number; max: number; step: number }> = {
@@ -46,6 +48,7 @@ const initial = (): RoastState => ({
   current: { gas: 4.5, air: 35, drum: 50 },
   suppressed: [],
   canUndo: false,
+  savedId: null,
 })
 
 export class RoastStore {
@@ -128,8 +131,14 @@ export class RoastStore {
     this.set({ status: 'finished' })
   }
 
-  update(patch: Partial<Pick<RoastState, 'roastedWeightG' | 'notes' | 'coffee' | 'greenWeightG'>>) {
+  update(patch: Partial<Pick<RoastState, 'roastedWeightG' | 'notes' | 'coffee' | 'greenWeightG' | 'savedId'>>) {
     this.set(patch)
+  }
+
+  /** Restores a roast in progress after a reload (undo history is not kept). */
+  restore(saved: RoastState) {
+    this.undoStack = []
+    this.set({ ...initial(), ...saved })
   }
 
   /** Back to "ready", keeping coffee, weight and control positions as defaults. */
