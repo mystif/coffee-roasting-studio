@@ -1,8 +1,6 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { loadRealRoast, realRoastNames } from '../testing/realRoasts'
 import { describe, expect, it } from 'vitest'
-import { parseAlog, type AlogRoast } from '../io/alog'
+import type { AlogRoast } from '../io/alog'
 import { detectCharge, detectDrop, detectDry, detectTP } from './autodetect'
 import { nextExpected, type EventType, type RoastEvent } from './events'
 import { phaseStats } from './phases'
@@ -32,10 +30,8 @@ describe('phases', () => {
   })
 })
 
-// ── auto detection replayed sample-by-sample on the user's real roasts (local only) ──
-const dataDir = fileURLToPath(new URL('../../_data/', import.meta.url))
-const alogs = existsSync(dataDir) ? readdirSync(dataDir).filter((f) => f.endsWith('.alog')) : []
-const load = (f: string) => parseAlog(readFileSync(join(dataDir, f), 'utf8'))
+const alogs = realRoastNames
+const load = loadRealRoast
 
 /** Feeds samples one by one like the live app and returns the first detection index. */
 function live(a: AlogRoast, detect: (t: number[], bt: (number | null)[]) => number | null, from = 0) {
@@ -51,14 +47,16 @@ describe.skipIf(alogs.length === 0)('auto detection vs Artisan on real roasts', 
     const a = load(file)
     const [charge, , fcs, , , , drop] = a.timeindex
 
+    // CHARGE (Artisan BTbreak): at the BT top after the manual press, noticed within 20 s
+    // With preheat data before CHARGE it must equal Artisan's (auto) CHARGE; recordings that
+    // start right at CHARGE have no top to find, there it only has to be noticed quickly.
     const c = live(a, (t, bt) => detectCharge(t, bt))!
-    expect(Math.abs(c.idx - charge)).toBeLessThanOrEqual(2)
-    expect(a.t[c.detectedAt] - a.t[c.idx]).toBeLessThanOrEqual(20) // noticed quickly
+    if (charge >= 3) expect(Math.abs(c.idx - charge)).toBeLessThanOrEqual(1)
+    expect(a.t[c.detectedAt] - a.t[c.idx]).toBeLessThanOrEqual(10) // noticed within 10 s of the BT break
 
-    const tp = live(a, (t, bt) => detectTP(t, bt, c.idx), c.idx)!
-    if (a.computed.TP_time != null) {
-      expect(Math.abs(a.t[tp.idx] - a.t[charge] - a.computed.TP_time)).toBeLessThanOrEqual(4)
-    }
+    // TP from Artisan's CHARGE must be Artisan's TP
+    const tp = live(a, (t, bt) => detectTP(t, bt, charge), charge)!
+    if (a.computed.TP_idx != null) expect(Math.abs(tp.idx - a.computed.TP_idx)).toBeLessThanOrEqual(1)
 
     const dry = detectDry(a.bt, tp.idx)!
     if (!a.timeindex[1] && a.computed.dryphasetime != null) {
@@ -66,11 +64,11 @@ describe.skipIf(alogs.length === 0)('auto detection vs Artisan on real roasts', 
       expect(Math.abs(a.t[dry] - a.t[charge] - a.computed.dryphasetime)).toBeLessThanOrEqual(4)
     }
 
-    // some recordings stop exactly at DROP – then there is nothing to detect
-    const hasAfterDrop = a.t.length - 1 - drop >= 10
-    const d = live(a, (t, bt) => detectDrop(t, bt, fcs), fcs)
-    if (hasAfterDrop) expect(Math.abs(d!.idx - drop)).toBeLessThanOrEqual(2)
-    else expect(d).toBeNull() // and no false DROP before the real one
-    console.log(`${file}: charge ${c.idx}/${charge}, TP ${a.t[tp.idx] - a.t[charge]}s/${a.computed.TP_time}, drop ${d?.idx}/${drop}`)
+    // DROP: recordings that stop right at DROP have nothing to detect – and no false DROP before it
+    const hasAfterDrop = a.t.length - 1 - drop >= 6
+    const d = live(a, (t, bt) => detectDrop(t, bt, fcs, a.t[charge]), fcs)
+    if (d) expect(Math.abs(d.idx - drop)).toBeLessThanOrEqual(2) // never a false DROP
+    else expect(hasAfterDrop).toBe(false)
+    console.log(`${file}: charge ${c.idx}/${charge} (+${(a.t[c.idx] - a.t[charge]).toFixed(0)} s), TP ${tp.idx}/${a.computed.TP_idx}, drop ${d?.idx}/${drop}`)
   })
 })

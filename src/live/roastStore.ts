@@ -201,7 +201,7 @@ export class RoastStore {
     }
     const fcsIdx = idxOf(findEvent(s.events, 'FCs'))
     if (fcsIdx >= 0 && !has('DROP')) {
-      const i = detectDrop(snap.t, snap.bt, fcsIdx)
+      const i = detectDrop(snap.t, snap.bt, fcsIdx, findEvent(s.events, 'CHARGE')?.t)
       if (i !== null) add.push(makeEvent('DROP', snap, i, true))
     }
     if (add.length) this.set({ events: sortEvents([...s.events, ...add]) })

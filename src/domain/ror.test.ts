@@ -1,8 +1,5 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { join } from 'node:path'
+import { loadRealRoast, realRoastNames } from '../testing/realRoasts'
 import { describe, expect, it } from 'vitest'
-import { parseAlog } from '../io/alog'
 import { computeRoR, lastRoR } from './ror'
 
 function ramp(intervalSec: number, ratePerMin: number, seconds = 300) {
@@ -45,13 +42,11 @@ describe('RoR', () => {
   })
 })
 
-// Compare with RoR at First Crack stored by Artisan in the user's own roasts (local only, not in git).
-const dataDir = fileURLToPath(new URL('../../_data/', import.meta.url))
-const alogs = existsSync(dataDir) ? readdirSync(dataDir).filter((f) => f.endsWith('.alog')) : []
+const alogs = realRoastNames
 
 describe.skipIf(alogs.length === 0)('RoR vs Artisan on real roasts', () => {
   it.each(alogs)('%s: RoR at FCs within 1.5 °C/min of Artisan', (file) => {
-    const a = parseAlog(readFileSync(join(dataDir, file), 'utf8'))
+    const a = loadRealRoast(file)
     const fcs = a.timeindex[2]
     const expected = a.computed.fcs_ror
     if (!fcs || expected == null) return
