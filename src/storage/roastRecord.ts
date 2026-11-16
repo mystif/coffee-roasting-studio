@@ -14,6 +14,7 @@ export interface RoastRecord {
   roastDate: string
   savedAt: string
   coffee: string
+  coffeeId: string | null
   greenWeightG: number | null
   roastedWeightG: number | null
   lossPct: number | null
@@ -51,6 +52,7 @@ export function buildRecord(snap: LiveSnapshot, roast: RoastState, id: string, n
     roastDate: new Date(snap.startAt + base * 1000).toISOString(),
     savedAt: now.toISOString(),
     coffee: roast.coffee,
+    coffeeId: roast.coffeeId,
     greenWeightG: roast.greenWeightG,
     roastedWeightG: roast.roastedWeightG,
     lossPct: lossPct(roast.greenWeightG, roast.roastedWeightG),

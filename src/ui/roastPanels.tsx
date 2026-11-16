@@ -1,4 +1,7 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
+import { addCoffee, emptyCoffee } from '../storage/coffees'
+import { db } from '../storage/db'
 import { EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR, PHASE_LABEL, currentPhase, phaseStats } from '../domain/phases'
 import { AIR_PRESETS, CONTROL_LIMITS, type RoastState } from '../live/roastStore'
@@ -170,31 +173,56 @@ function Mini({ label, value }: { label: string; value: string }) {
 // ── start bar (before roasting) ────────────────────────────
 
 export function StartBar({ state, canStart }: { state: RoastState; canStart: boolean }) {
+  const coffees = useLiveQuery(() => db.coffees.orderBy('name').toArray(), [])
   const [coffee, setCoffee] = useState(state.coffee)
   const [weight, setWeight] = useState(kg(state.greenWeightG))
-  const start = () => roast.start({ coffee: coffee.trim(), greenWeightG: parseKg(weight) })
+  // follow "duplicate as new" pre-fills
+  useEffect(() => {
+    setCoffee(state.coffee)
+    setWeight(kg(state.greenWeightG))
+  }, [state.coffee, state.greenWeightG])
+  const name = coffee.trim()
+  const match = coffees?.find((c) => c.name.toLowerCase() === name.toLowerCase())
+  const start = async () => {
+    // typed name not in the list yet → add it, so it is one click next time
+    const linked = match ?? (name ? await addCoffee({ ...emptyCoffee(), name }) : null)
+    roast.start({ coffee: linked?.name ?? name, coffeeId: linked?.id ?? null, greenWeightG: parseKg(weight) })
+  }
   return (
     <div className={`${CARD} flex items-end gap-4 px-5 py-3`}>
       <label className="flex flex-1 flex-col gap-1 text-xs text-zinc-400">
-        Káva
+        <span>
+          Káva {name && !match && <span className="text-sky-300">· nová, přidá se do seznamu káv</span>}
+        </span>
         <input
           value={coffee}
+          autoComplete="off"
+          list="coffee-list"
           onChange={(e) => setCoffee(e.target.value)}
-          placeholder="např. Colombia Huila"
+          placeholder={coffees?.length ? 'vyber nebo napiš název' : 'např. Colombia Huila'}
           className="rounded-xl bg-[#16171d] px-3 py-2 text-base text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
         />
+        <datalist id="coffee-list">
+          {coffees?.map((c) => (
+            <option key={c.id} value={c.name}>
+              {[c.country, c.process].filter(Boolean).join(', ')}
+            </option>
+          ))}
+        </datalist>
       </label>
       <label className="flex w-40 flex-col gap-1 text-xs text-zinc-400">
         Zelená káva (kg)
         <input
           value={weight}
+          autoComplete="off"
           inputMode="decimal"
           onChange={(e) => setWeight(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && canStart && void start()}
           placeholder="3,0"
           className="rounded-xl bg-[#16171d] px-3 py-2 text-base tabular-nums text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
         />
       </label>
-      <ClayButton variant="primary" onClick={start} disabled={!canStart} className="px-8 py-3 text-base">
+      <ClayButton variant="primary" onClick={() => void start()} disabled={!canStart} className="px-8 py-3 text-base">
         Start Roasting
       </ClayButton>
     </div>
@@ -284,7 +312,8 @@ export function SummaryPanel({ state }: { state: RoastState }) {
     )
   }
   return (
-    <div className={`${CARD} absolute right-4 top-4 bottom-4 z-10 flex w-96 flex-col gap-4 overflow-auto bg-[#1f2128]/95 p-5`}>
+    <div className={`${CARD} absolute inset-3 z-10 grid grid-cols-2 gap-6 overflow-auto bg-[#1f2128]/95 p-5`}>
+      <div className="flex flex-col gap-3">
       <div>
         <p className="text-xs uppercase tracking-wide text-zinc-400">Vyhodnocení pražení</p>
         <h2 className="text-xl font-semibold">{state.coffee || 'Bez názvu'}</h2>
@@ -319,6 +348,8 @@ export function SummaryPanel({ state }: { state: RoastState }) {
           </tbody>
         </table>
       )}
+      </div>
+      <div className="flex flex-col gap-3">
       <div className="flex gap-3">
         <label className="flex flex-1 flex-col gap-1 text-xs text-zinc-400">
           Zelená (kg)
@@ -329,6 +360,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
           <input
             ref={roastedInput}
             value={roasted}
+            autoComplete="off"
             inputMode="decimal"
             onChange={(e) => {
               setRoasted(e.target.value)
@@ -344,13 +376,19 @@ export function SummaryPanel({ state }: { state: RoastState }) {
         <textarea
           value={state.notes}
           onChange={(e) => roast.update({ notes: e.target.value })}
-          rows={3}
+          rows={6}
           className="rounded-xl bg-[#16171d] px-3 py-2 text-sm text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
         />
       </label>
-      <ClayButton variant="primary" onClick={() => roast.newRoast()}>
-        Nové pražení
-      </ClayButton>
+      <div className="mt-auto flex gap-2">
+        <ClayButton variant="primary" onClick={() => roast.newRoast()} className="flex-1">
+          Nové pražení
+        </ClayButton>
+        {state.savedId && (
+          <ClayButton onClick={() => (location.hash = `#/historie/${state.savedId}`)}>Detail v historii</ClayButton>
+        )}
+      </div>
+      </div>
     </div>
   )
 }

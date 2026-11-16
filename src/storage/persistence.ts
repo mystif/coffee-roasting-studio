@@ -86,7 +86,7 @@ function onRoastChange() {
 }
 
 const editedFields = (a: RoastState, b: RoastState) =>
-  a.roastedWeightG !== b.roastedWeightG || a.notes !== b.notes || a.coffee !== b.coffee || a.greenWeightG !== b.greenWeightG
+  a.roastedWeightG !== b.roastedWeightG || a.notes !== b.notes || a.coffee !== b.coffee || a.coffeeId !== b.coffeeId || a.greenWeightG !== b.greenWeightG
 
 async function saveFinished() {
   try {
@@ -108,6 +108,7 @@ async function saveEdits() {
   try {
     await db.roasts.update(s.savedId, {
       coffee: s.coffee,
+      coffeeId: s.coffeeId,
       greenWeightG: s.greenWeightG,
       roastedWeightG: s.roastedWeightG,
       lossPct: lossPct(s.greenWeightG, s.roastedWeightG),

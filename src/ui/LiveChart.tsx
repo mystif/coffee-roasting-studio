@@ -83,6 +83,13 @@ export function LiveChart({ snap, overlay, follow, onFollowChange }: Props) {
         {
           ...AXIS,
           incrs: [15, 30, 60, 120, 300, 600],
+          // ticks on whole minutes of roast time (counted from CHARGE)
+          splits: (_u, _ax, min, max, incr) => {
+            const c = overlayRef.current.chargeT ?? 0
+            const out: number[] = []
+            for (let v = c + Math.ceil((min - c) / incr) * incr; v <= max; v += incr) out.push(v)
+            return out
+          },
           values: (_u, splits) => splits.map((v) => fmtTime(v - (overlayRef.current.chargeT ?? 0))),
         },
         { ...AXIS, scale: 'temp', values: (_u, splits) => splits.map((v) => `${v}°`), size: 48 },

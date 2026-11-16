@@ -86,3 +86,8 @@ export async function startReplay(file: File, speed = 10) {
     i++
   }, intervalMs / speed)
 }
+
+// development only: lets automated UI checks drive the live buffer (never in the deployed app)
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  Object.assign(window, { __roastingDev: { session, roast } })
+}

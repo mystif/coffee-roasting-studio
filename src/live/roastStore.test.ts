@@ -65,3 +65,16 @@ describe('RoastStore', () => {
     expect(s.events.some((e) => e.type === 'DROP')).toBe(true)
   })
 })
+
+describe('RoastStore.prepare (duplicate as new)', () => {
+  it('pre-fills coffee, weight and control positions, but never during a roast', () => {
+    const { store, feed } = setup()
+    expect(store.prepare({ coffee: 'Kenya', coffeeId: 'k1', greenWeightG: 3500, current: { gas: 5.5, air: 50 } })).toBe(true)
+    expect(store.getSnapshot()).toMatchObject({ status: 'ready', coffee: 'Kenya', coffeeId: 'k1', greenWeightG: 3500 })
+    expect(store.getSnapshot().current).toEqual({ gas: 5.5, air: 50, drum: 50 })
+    feed(200, 2)
+    store.start({ coffee: 'Kenya', coffeeId: 'k1', greenWeightG: 3500 })
+    expect(store.prepare({ coffee: 'X', coffeeId: null, greenWeightG: null })).toBe(false)
+    expect(store.getSnapshot().coffee).toBe('Kenya')
+  })
+})

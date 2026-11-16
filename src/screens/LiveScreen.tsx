@@ -15,6 +15,7 @@ import {
 import { CURVE_COLORS, LiveChart, fmtTime, type ChartOverlay } from '../ui/LiveChart'
 import { ClayButton } from '../ui/clay'
 import { ControlsBar, EventPanel, PhaseStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
+import { NavTabs } from '../ui/nav'
 import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
 
 const STATE: Record<ConnectionState, { label: string; dot: string }> = {
@@ -68,19 +69,20 @@ export function LiveScreen() {
   return (
     <div className="flex h-screen flex-col gap-3 bg-[#16171d] p-4 text-zinc-100">
       <header className="flex items-center gap-3">
-        <h1 className="mr-2 text-lg font-semibold tracking-tight">Coffee Roasting Studio</h1>
-        <div className="flex items-center gap-2 rounded-full bg-[#22242c] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_rgba(0,0,0,.35)]">
+        <img src="./icon.svg" alt="Roasting Studio" className="h-8 w-8 shrink-0" />
+        <NavTabs />
+        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[#22242c] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_rgba(0,0,0,.35)]">
           <span className={`h-2.5 w-2.5 rounded-full ${STATE[conn].dot}`} />
           {STATE[conn].label}
         </div>
         {state.status !== 'ready' && (
-          <span className="truncate text-sm text-zinc-300">
+          <span className="min-w-0 truncate text-sm text-zinc-300">
             {state.coffee || 'Bez názvu'}
             {state.greenWeightG ? ` · ${String(state.greenWeightG / 1000).replace('.', ',')} kg` : ''}
           </span>
         )}
         {error && <span className="text-sm text-rose-300">{error}</span>}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
           <BackupChip />
           {state.status === 'roasting' && (
             <ClayButton variant="danger" onClick={() => roast.finish()} title="Ukončí pražení (přidá Drop, pokud chybí)">
@@ -100,7 +102,7 @@ export function LiveScreen() {
           >
             {isReplay ? 'Zastavit přehrávání' : 'Přehrát .alog'}
           </ClayButton>
-          <a href="#/diagnostika" className="px-2 text-sm text-zinc-400 hover:text-zinc-200">
+          <a href="#/diagnostika" className="px-2 text-sm text-zinc-500 hover:text-zinc-200">
             Diagnostika
           </a>
           <input
