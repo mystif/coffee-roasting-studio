@@ -129,6 +129,8 @@ export class RoasterConnection {
           }
         } catch (e) {
           this.log(`Chyba čtení: ${errMsg(e)}`)
+          // device lost (e.g. Bluetooth dropped): don't wait for 3 timeouts
+          if (this.wanted) void this.reconnect()
           return
         } finally {
           reader.releaseLock()
