@@ -28,7 +28,10 @@ class FakePort extends EventTarget {
   async open() {
     if (this.failOpen) throw new Error('open failed')
     this.opens++
-    this.readable = new ReadableStream({ start: (c) => void (this.ctrl = c) })
+    this.readable = new ReadableStream({
+      start: (c) => void (this.ctrl = c),
+      cancel: () => void (this.ctrl = null),
+    })
     this.writable = new WritableStream({
       write: () => {
         if (!this.silent) setTimeout(() => this.ctrl?.enqueue(response(182.4, 231)), 5)
@@ -37,6 +40,7 @@ class FakePort extends EventTarget {
   }
 
   async close() {
+    this.ctrl = null
     this.readable = null
     this.writable = null
   }
