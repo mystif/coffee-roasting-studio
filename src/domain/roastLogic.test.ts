@@ -1,0 +1,76 @@
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { describe, expect, it } from 'vitest'
+import { parseAlog, type AlogRoast } from '../io/alog'
+import { detectCharge, detectDrop, detectDry, detectTP } from './autodetect'
+import { nextExpected, type EventType, type RoastEvent } from './events'
+import { phaseStats } from './phases'
+
+const ev = (type: EventType, t: number): RoastEvent => ({ id: type, type, t, bt: null, et: null })
+
+describe('phases', () => {
+  it('computes Artisan-style phases and DTR', () => {
+    // BRA roast from Artisan: DRY 328 s, FCs 590 s, DROP 786 s (relative to CHARGE)
+    const s = phaseStats([ev('CHARGE', 10), ev('DRY', 338), ev('FCs', 600), ev('DROP', 796)], 999)!
+    expect(s.total).toBe(786)
+    expect([s.drying, s.maillard, s.development]).toEqual([328, 262, 196])
+    expect(s.dtr).toBeCloseTo(24.94, 2)
+  })
+
+  it('runs the open phase to "now" while roasting', () => {
+    const s = phaseStats([ev('CHARGE', 0), ev('DRY', 300)], 420)!
+    expect(s.maillard).toBe(120)
+    expect(s.development).toBeNull()
+    expect(s.total).toBe(420)
+  })
+
+  it('walks the main sequence for the space bar', () => {
+    expect(nextExpected([])).toBe('CHARGE')
+    expect(nextExpected([ev('CHARGE', 0), ev('DRY', 1)])).toBe('FCs')
+    expect(nextExpected([ev('CHARGE', 0), ev('DROP', 1)])).toBeNull()
+  })
+})
+
+// ── auto detection replayed sample-by-sample on the user's real roasts (local only) ──
+const dataDir = fileURLToPath(new URL('../../_data/', import.meta.url))
+const alogs = existsSync(dataDir) ? readdirSync(dataDir).filter((f) => f.endsWith('.alog')) : []
+const load = (f: string) => parseAlog(readFileSync(join(dataDir, f), 'utf8'))
+
+/** Feeds samples one by one like the live app and returns the first detection index. */
+function live(a: AlogRoast, detect: (t: number[], bt: (number | null)[]) => number | null, from = 0) {
+  for (let n = from + 2; n <= a.t.length; n++) {
+    const r = detect(a.t.slice(0, n), a.bt.slice(0, n))
+    if (r !== null) return { idx: r, detectedAt: n - 1 }
+  }
+  return null
+}
+
+describe.skipIf(alogs.length === 0)('auto detection vs Artisan on real roasts', () => {
+  it.each(alogs)('%s', (file) => {
+    const a = load(file)
+    const [charge, , fcs, , , , drop] = a.timeindex
+
+    const c = live(a, (t, bt) => detectCharge(t, bt))!
+    expect(Math.abs(c.idx - charge)).toBeLessThanOrEqual(2)
+    expect(a.t[c.detectedAt] - a.t[c.idx]).toBeLessThanOrEqual(20) // noticed quickly
+
+    const tp = live(a, (t, bt) => detectTP(t, bt, c.idx), c.idx)!
+    if (a.computed.TP_time != null) {
+      expect(Math.abs(a.t[tp.idx] - a.t[charge] - a.computed.TP_time)).toBeLessThanOrEqual(4)
+    }
+
+    const dry = detectDry(a.bt, tp.idx)!
+    if (!a.timeindex[1] && a.computed.dryphasetime != null) {
+      // Artisan derived Dry End from the 130 °C phase setting → must match
+      expect(Math.abs(a.t[dry] - a.t[charge] - a.computed.dryphasetime)).toBeLessThanOrEqual(4)
+    }
+
+    // some recordings stop exactly at DROP – then there is nothing to detect
+    const hasAfterDrop = a.t.length - 1 - drop >= 10
+    const d = live(a, (t, bt) => detectDrop(t, bt, fcs), fcs)
+    if (hasAfterDrop) expect(Math.abs(d!.idx - drop)).toBeLessThanOrEqual(2)
+    else expect(d).toBeNull() // and no false DROP before the real one
+    console.log(`${file}: charge ${c.idx}/${charge}, TP ${a.t[tp.idx] - a.t[charge]}s/${a.computed.TP_time}, drop ${d?.idx}/${drop}`)
+  })
+})

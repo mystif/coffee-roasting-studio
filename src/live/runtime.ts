@@ -3,10 +3,13 @@ import { useSyncExternalStore } from 'react'
 import { parseAlog } from '../io/alog'
 import { RoasterConnection, type ConnectionState } from '../roaster/RoasterConnection'
 import { LiveSession } from './LiveSession'
+import { RoastStore, useRoast } from './roastStore'
 
 export const SAMPLE_INTERVAL_MS = 1000 // verified in S0: median latency 61 ms over Bluetooth
 
 export const session = new LiveSession()
+export const roast = new RoastStore(session)
+export const useRoastState = () => useRoast(roast)
 
 // ── connection state store ──
 let connState: ConnectionState = 'idle'
@@ -49,7 +52,9 @@ export function useLive() {
 
 export async function connectRoaster() {
   stopReplay()
-  session.reset('roaster', 'Dongyi BR-3.5', SAMPLE_INTERVAL_MS)
+  if (session.getSnapshot().source === 'replay') roast.newRoast()
+  // keep data of a roast in progress across a manual reconnect
+  if (roast.getSnapshot().status !== 'roasting') session.reset('roaster', 'Dongyi BR-3.5', SAMPLE_INTERVAL_MS)
   await getConnection().connect()
 }
 
@@ -71,6 +76,9 @@ export async function startReplay(file: File, speed = 10) {
   const a = parseAlog(await file.text())
   const intervalMs = Math.round((a.samplingInterval || 2) * 1000)
   session.reset('replay', file.name, intervalMs)
+  roast.newRoast()
+  const kg = a.weightUnit.toLowerCase().startsWith('k') ? 1000 : 1
+  roast.start({ coffee: file.name.replace(/\.alog$/i, ''), greenWeightG: a.greenWeight ? a.greenWeight * kg : null })
   let i = 0
   replayTimer = setInterval(() => {
     if (i >= a.t.length) return stopReplay()
