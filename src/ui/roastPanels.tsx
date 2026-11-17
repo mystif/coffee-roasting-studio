@@ -300,23 +300,16 @@ export function ControlsBar({ state, batchSec }: { state: RoastState; batchSec?:
   const enabled = state.status === 'roasting'
   const c = state.current
   return (
-    <div className={`${CARD} flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-1.5 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
-      <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-zinc-500">
-        Ruční
-        <br />
-        záznam
-      </span>
-      <Presets label="Plyn" unit="kPa" hint="↑ ↓" kind="gas" values={GAS_PRESETS} current={c.gas} enabled={enabled} />
-      <Presets label="Vzduch (Hot Air)" unit="%" hint="1–5" kind="air" values={AIR_PRESETS} current={c.air} enabled={enabled} />
-      <label className="flex flex-col gap-1 text-xs text-zinc-400">
-        <span>
-          Buben <span className="text-zinc-500">%</span> <span className="text-zinc-600">[ ]</span>
-        </span>
+    <div className={`${CARD} flex items-center gap-4 overflow-x-auto px-3 py-1 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
+      <Presets label="Plyn" title="Plyn (kPa) · klávesy ↑ ↓" kind="gas" values={GAS_PRESETS} current={c.gas} enabled={enabled} />
+      <Presets label="Vzduch" title="Vzduch – Hot Air (%) · klávesy 1–5" kind="air" values={AIR_PRESETS} current={c.air} enabled={enabled} />
+      <label className="flex shrink-0 items-center gap-1.5 text-[11px] text-zinc-400" title="Rychlost bubnu (%) · klávesy [ ]">
+        Buben
         <select
           value={c.drum}
           disabled={!enabled}
           onChange={(e) => roast.setControl('drum', Number(e.target.value))}
-          className="rounded-xl bg-[var(--c-bg)] px-3 py-1.5 text-sm font-semibold tabular-nums text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+          className="rounded-lg bg-[var(--c-bg)] px-1.5 py-0.5 text-xs font-semibold tabular-nums text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
         >
           {DRUM_VALUES.map((v) => (
             <option key={v} value={v}>
@@ -325,19 +318,17 @@ export function ControlsBar({ state, batchSec }: { state: RoastState; batchSec?:
           ))}
         </select>
       </label>
-      <DayTimer batchSec={batchSec ?? null} />
+      <DayTimer batchSec={batchSec ?? null} compact />
     </div>
   )
 }
 
-/** Fixed values as a segmented control; the selected one has the same shade as its bar in the chart. */
-function Presets(props: { label: string; unit: string; hint: string; kind: ControlKind; values: number[]; current: number; enabled: boolean }) {
+/** Fixed values as a compact segmented control; the selected one has the same shade as its bar in the chart. */
+function Presets(props: { label: string; title: string; kind: ControlKind; values: number[]; current: number; enabled: boolean }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-zinc-400">
-        {props.label} <span className="text-zinc-500">{props.unit}</span> <span className="text-zinc-600">{props.hint}</span>
-      </span>
-      <div className="flex gap-0.5 rounded-2xl bg-[var(--c-bg)] p-1">
+    <div className="flex shrink-0 items-center gap-1.5" title={props.title}>
+      <span className="text-[11px] text-zinc-400">{props.label}</span>
+      <div className="flex gap-px rounded-lg bg-[var(--c-bg)] p-0.5">
         {props.values.map((v) => {
           const active = props.current === v
           return (
@@ -346,8 +337,8 @@ function Presets(props: { label: string; unit: string; hint: string; kind: Contr
               disabled={!props.enabled}
               onClick={() => roast.setControl(props.kind, v)}
               style={active ? { background: shade(props.kind, v), color: textOn(props.kind, v) } : undefined}
-              className={`min-w-10 rounded-xl px-2 py-1 text-sm font-semibold tabular-nums transition ${
-                active ? 'shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_3px_8px_var(--sh)]' : 'text-zinc-300 hover:bg-white/5'
+              className={`min-w-7 rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums transition ${
+                active ? 'shadow-[0_2px_5px_var(--sh)]' : 'text-zinc-300 hover:bg-white/5'
               }`}
             >
               {formatControl(props.kind, v)}

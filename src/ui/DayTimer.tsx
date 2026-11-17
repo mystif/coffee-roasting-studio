@@ -9,7 +9,7 @@ const kg = (x: number) => `${x.toFixed(2).replace('.', ',')} kg`
 const dávky = (n: number) => (n === 1 ? '1 dávka' : n >= 2 && n <= 4 ? `${n} dávky` : `${n} dávek`)
 
 /** Total time of the roasting day and estimated gas use (shown in the bottom bar). */
-export function DayTimer({ batchSec = null }: { batchSec?: number | null } = {}) {
+export function DayTimer({ batchSec = null, compact = false }: { batchSec?: number | null; compact?: boolean } = {}) {
   const d = dayState.use()
   const [now, setNow] = useState(Date.now())
   const running = d.startedAt !== null && d.stoppedAt === null
@@ -26,6 +26,16 @@ export function DayTimer({ batchSec = null }: { batchSec?: number | null } = {})
   const box = 'ml-auto flex items-center gap-3 rounded-2xl bg-[var(--c-bg)] px-3 py-1'
   const btn = 'rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wide shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_3px_8px_var(--sh)] active:translate-y-px'
 
+  if (d.startedAt === null && compact) {
+    return (
+      <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-[11px] text-zinc-500">
+        den čeká na nahřívání
+        <button className="rounded-md bg-[var(--c-raised)] px-2 py-0.5 text-[10px] font-bold uppercase text-zinc-200" onClick={() => startDay(Date.now(), 'manual')}>
+          Start
+        </button>
+      </div>
+    )
+  }
   if (d.startedAt === null) {
     return (
       <div className={box} title="Den se spustí sám, jakmile začne stoupat ET (zapálený hořák)">
@@ -42,6 +52,36 @@ export function DayTimer({ batchSec = null }: { batchSec?: number | null } = {})
   }
 
   const end = d.stoppedAt ?? now
+  if (compact && d.startedAt !== null) {
+    const ms2 = end - d.startedAt
+    return (
+      <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-[11px] text-zinc-400" title={`Den pražení od ${new Date(d.startedAt).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })} · plyn ${GAS_KG_PER_HOUR} kg/h`}>
+        <span>
+          den <b className="tabular-nums text-zinc-200">{fmtDuration(ms2)}</b>
+        </span>
+        <span>
+          plyn <b className="tabular-nums text-orange-300">{kg(gasKg(ms2))}</b>
+        </span>
+        {batchSec !== null && (
+          <span>
+            dávka <b className="tabular-nums text-orange-300">{kg(gasKg(batchSec * 1000))}</b>
+          </span>
+        )}
+        <span>{dávky(roasts ?? 0)}</span>
+        {!d.stoppedAt && (
+          <button
+            className="rounded-md bg-gradient-to-b from-rose-400 to-rose-600 px-2 py-0.5 text-[10px] font-bold uppercase text-rose-950"
+            onClick={async () => {
+              if (await askConfirm('Ukončit den pražení?', { message: `${fmtDuration(ms2)} · plyn ~${kg(gasKg(ms2))} · ${dávky(roasts ?? 0)}`, okLabel: 'Ukončit den', danger: true }))
+                void stopDay()
+            }}
+          >
+            Stop
+          </button>
+        )}
+      </div>
+    )
+  }
   const ms = end - d.startedAt
   const since = new Date(d.startedAt).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
   const title = `Od ${since} (${d.reason === 'et' ? 'start podle náběhu ET' : d.reason === 'hot' ? 'pražička už byla horká při připojení' : 'spuštěno ručně'}). Plyn: odhad ${GAS_KG_PER_HOUR} kg/h provozu.`
