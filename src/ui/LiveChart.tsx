@@ -13,6 +13,10 @@ export const CURVE_COLORS = { bt: 'var(--curve-bt)', et: 'var(--curve-et)', ror:
 
 const axis = () => ({ stroke: cssVar('--chart-axis'), grid: { stroke: cssVar('--chart-grid'), width: 1 }, ticks: { show: false } })
 
+/** Zoom per scroll pixel (0.0015 → one mouse-wheel notch ≈ 9 %, a trackpad swipe zooms gently). */
+const ZOOM_SENSITIVITY = 0.0015
+const PAN_SENSITIVITY = 0.6
+
 /** Time origin of the chart: CHARGE, or the preview anchor while a reference is shown before CHARGE. */
 const zeroT = (o: ChartOverlay): number | null => o.chargeT ?? (o.reference ? (o.previewAt ?? 0) : null)
 
@@ -148,6 +152,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
     const u = new uPlot(opts, [[], [], [], []], el)
     plot.current = u
     onReady?.(u)
+    if (import.meta.env.DEV) Object.assign(window, { __chart: u }) // development only: lets UI checks read the scales
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
@@ -157,11 +162,13 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       let nMin: number
       let nMax: number
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        const shift = (e.deltaX / u.over.clientWidth) * span
+        const shift = (e.deltaX / u.over.clientWidth) * span * PAN_SENSITIVITY
         nMin = min + shift
         nMax = max + shift
       } else {
-        const factor = e.deltaY > 0 ? 1.15 : 1 / 1.15
+        // proportional to the scroll amount: a trackpad sends many tiny deltas, a mouse wheel ~100 per notch
+        const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY // lines → px
+        const factor = Math.exp(Math.max(-60, Math.min(60, dy)) * ZOOM_SENSITIVITY)
         const at = u.posToVal(e.offsetX, 'x')
         nMin = at - (at - min) * factor
         nMax = at + (max - at) * factor
