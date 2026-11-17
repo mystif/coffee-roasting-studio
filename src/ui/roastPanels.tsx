@@ -5,7 +5,10 @@ import { db } from '../storage/db'
 import { profileChoice } from '../storage/profiles'
 import { EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR, PHASE_TEXT, PHASE_LABEL, currentPhase, phaseStats } from '../domain/phases'
-import { AIR_PRESETS, CONTROL_LIMITS, GAS_PRESETS, type RoastState } from '../live/roastStore'
+import { AIR_PRESETS, GAS_PRESETS, type RoastState } from '../live/roastStore'
+
+/** Drum speed knob 0–100, in steps of 5. */
+const DRUM_VALUES = Array.from({ length: 21 }, (_, i) => i * 5)
 import { formatControl, shade } from './chartMarks'
 import type { ControlKind } from '../domain/events'
 import { roast } from '../live/runtime'
@@ -294,7 +297,23 @@ export function ControlsBar({ state }: { state: RoastState }) {
       </span>
       <Presets label="Plyn" unit="kPa" hint="↑ ↓" kind="gas" values={GAS_PRESETS} current={c.gas} enabled={enabled} />
       <Presets label="Vzduch (Hot Air)" unit="%" hint="1–5" kind="air" values={AIR_PRESETS} current={c.air} enabled={enabled} />
-      <Stepper label="Buben" unit="%" value={c.drum} kind="drum" enabled={enabled} hint="[ ]" />
+      <label className="flex flex-col gap-1 text-xs text-zinc-400">
+        <span>
+          Buben <span className="text-zinc-500">%</span> <span className="text-zinc-600">[ ]</span>
+        </span>
+        <select
+          value={c.drum}
+          disabled={!enabled}
+          onChange={(e) => roast.setControl('drum', Number(e.target.value))}
+          className="rounded-xl bg-[var(--c-bg)] px-3 py-1.5 text-sm font-semibold tabular-nums text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+        >
+          {DRUM_VALUES.map((v) => (
+            <option key={v} value={v}>
+              {v} %
+            </option>
+          ))}
+        </select>
+      </label>
       {state.reference && (
         <div className="min-w-0 max-w-56 leading-tight" title={state.reference.label}>
           <div className="text-[11px] uppercase tracking-wide text-zinc-500">Reference</div>
@@ -335,28 +354,6 @@ function Presets(props: { label: string; unit: string; hint: string; kind: Contr
   )
 }
 
-function Stepper(props: { label: string; unit: string; value: number; kind: 'drum'; enabled: boolean; hint: string }) {
-  const step = CONTROL_LIMITS[props.kind].step
-  const btn = 'h-9 w-9 rounded-xl bg-[var(--c-raised)] text-lg font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,.15),0_4px_10px_var(--sh)] active:translate-y-px'
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-zinc-400">
-        {props.label} <span className="text-zinc-600">{props.hint}</span>
-      </span>
-      <div className="flex items-center gap-2">
-        <button className={btn} disabled={!props.enabled} onClick={() => roast.setControl(props.kind, props.value - step)}>
-          −
-        </button>
-        <span className="w-24 text-center text-2xl font-semibold tabular-nums">
-          {String(props.value).replace('.', ',')} <span className="text-sm text-zinc-400">{props.unit}</span>
-        </span>
-        <button className={btn} disabled={!props.enabled} onClick={() => roast.setControl(props.kind, props.value + step)}>
-          +
-        </button>
-      </div>
-    </div>
-  )
-}
 
 // ── summary after Finish ───────────────────────────────────
 
