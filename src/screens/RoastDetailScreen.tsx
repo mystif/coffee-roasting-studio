@@ -6,7 +6,7 @@ import { chartToPng, download, recordToCsv } from '../io/exportFiles'
 import { backupFileName } from '../storage/roastRecord'
 import { computeRoR } from '../domain/ror'
 import { CONTROL_UNIT, EVENT_LABEL, findEvent, type ControlKind, type EventType } from '../domain/events'
-import { PHASE_COLOR, PHASE_LABEL } from '../domain/phases'
+import { PHASE_TEXT, PHASE_LABEL } from '../domain/phases'
 import type { LiveSnapshot } from '../live/LiveSession'
 import { roast } from '../live/runtime'
 import { flushBackups } from '../storage/backup'
@@ -122,7 +122,7 @@ function Detail({ r }: { r: RoastRecord }) {
             <Stat label="Charge BT" value={s.chargeBT == null ? '—' : `${s.chargeBT.toFixed(1)}°`} />
             <Stat label="Drop BT" value={s.dropBT == null ? '—' : `${s.dropBT.toFixed(1)}°`} />
           </div>
-          <div className="relative h-[28rem] rounded-3xl bg-[#1b1d23] p-3 shadow-[inset_0_2px_10px_rgba(0,0,0,.45)]">
+          <div className="relative h-[28rem] rounded-3xl bg-[var(--c-chart)] p-3 shadow-[inset_0_2px_10px_var(--sh-in)]">
             <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} onReady={(u) => (chart.current = u)} />
           </div>
           <div className="flex items-center gap-2">
@@ -169,7 +169,7 @@ function Detail({ r }: { r: RoastRecord }) {
                       ] as const
                     ).map(([k, sec, pct]) => (
                       <tr key={k}>
-                        <td className="py-0.5 font-semibold" style={{ color: PHASE_COLOR[k] }}>
+                        <td className="py-0.5 font-semibold" style={{ color: PHASE_TEXT[k] }}>
                           {PHASE_LABEL[k]}
                         </td>
                         <td className="text-right">{sec == null ? '—' : fmtTime(sec)}</td>
@@ -270,7 +270,7 @@ function EditPanel({ r, onDelete }: { r: RoastRecord; onDelete: () => void }) {
               key={n}
               onClick={() => setV({ ...v, rating: v.rating === n ? null : n })}
               className={`h-8 flex-1 rounded-lg text-sm font-semibold ${
-                v.rating !== null && n <= v.rating ? 'bg-amber-400 text-amber-950' : 'bg-[#16171d] text-zinc-400 hover:text-zinc-100'
+                v.rating !== null && n <= v.rating ? 'bg-amber-400 text-amber-950' : 'bg-[var(--c-bg)] text-zinc-400 hover:text-zinc-100'
               }`}
             >
               {n}
@@ -300,7 +300,7 @@ function EditPanel({ r, onDelete }: { r: RoastRecord; onDelete: () => void }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl bg-[#1f2128] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_10px_24px_rgba(0,0,0,.3)]">
+    <div className="rounded-3xl bg-[var(--c-surface)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_10px_24px_var(--sh-soft)]">
       <div className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</div>
       <div className="text-2xl font-semibold tabular-nums">{value}</div>
     </div>

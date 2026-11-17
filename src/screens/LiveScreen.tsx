@@ -16,7 +16,8 @@ import { CURVE_COLORS, LiveChart, fmtTime, type ChartOverlay } from '../ui/LiveC
 import { ClayButton } from '../ui/clay'
 import { ControlsBar, EventPanel, PhaseStrip, ReferenceStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
 import { referenceState } from '../live/referenceState'
-import { NavTabs } from '../ui/nav'
+import { MoreMenu, NavTabs } from '../ui/nav'
+import { ThemeToggle } from '../ui/theme'
 import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
 
 const STATE: Record<ConnectionState, { label: string; dot: string }> = {
@@ -69,16 +70,16 @@ export function LiveScreen() {
   }
 
   return (
-    <div className="flex h-screen flex-col gap-3 bg-[#16171d] p-4 text-zinc-100">
+    <div className="flex h-screen flex-col gap-3 bg-[var(--c-bg)] p-4 text-zinc-100">
       <header className="flex items-center gap-3">
         <img src="./icon.svg" alt="Roasting Studio" className="h-8 w-8 shrink-0" />
         <NavTabs />
-        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[#22242c] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_rgba(0,0,0,.35)]">
+        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--c-chip)] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]">
           <span className={`h-2.5 w-2.5 rounded-full ${STATE[conn].dot}`} />
           {STATE[conn].label}
         </div>
         {state.status !== 'ready' && (
-          <span className="min-w-0 truncate text-sm text-zinc-300">
+          <span className="min-w-0 flex-1 truncate text-sm text-zinc-300" title={state.coffee}>
             {state.coffee || 'Bez názvu'}
             {state.greenWeightG ? ` · ${String(state.greenWeightG / 1000).replace('.', ',')} kg` : ''}
           </span>
@@ -86,6 +87,7 @@ export function LiveScreen() {
         {error && <span className="text-sm text-rose-300">{error}</span>}
         <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
           <BackupChip />
+          <ThemeToggle />
           {state.status === 'roasting' && (
             <ClayButton variant="danger" onClick={() => roast.finish()} title="Ukončí pražení (přidá Drop, pokud chybí)">
               Finish
@@ -98,15 +100,16 @@ export function LiveScreen() {
           ) : (
             <ClayButton onClick={run(disconnectRoaster)}>Odpojit</ClayButton>
           )}
-          <ClayButton
-            onClick={() => (isReplay ? stopReplay() : fileInput.current?.click())}
-            title="Přehraje uložený záznam z Artisanu – jen pro vyzkoušení, nejsou to živá data"
-          >
-            {isReplay ? 'Zastavit přehrávání' : 'Přehrát .alog'}
-          </ClayButton>
-          <a href="#/diagnostika" className="px-2 text-sm text-zinc-500 hover:text-zinc-200">
-            Diagnostika
-          </a>
+          {isReplay ? (
+            <ClayButton onClick={() => stopReplay()}>Zastavit přehrávání</ClayButton>
+          ) : (
+            <MoreMenu
+              items={[
+                { label: 'Přehrát záznam .alog', hint: 'jen pro vyzkoušení – nejsou to živá data', onClick: () => fileInput.current?.click() },
+                { label: 'Diagnostika připojení', onClick: () => (location.hash = '#/diagnostika') },
+              ]}
+            />
+          )}
           <input
             ref={fileInput}
             type="file"
@@ -142,7 +145,7 @@ export function LiveScreen() {
         <Readout
           label={charge ? 'Čas pražení' : 'Čas (před Charge)'}
           text={roastTime === null ? '—' : fmtTime(roastTime)}
-          color="#e5e7eb"
+          color="var(--color-zinc-100)"
         />
       </div>
 
@@ -160,7 +163,7 @@ export function LiveScreen() {
       {ref.missing && <p className="text-xs text-amber-300">Vybraná reference už neexistuje.</p>}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <div className="relative min-w-0 flex-1 rounded-3xl bg-[#1b1d23] p-3 shadow-[inset_0_2px_10px_rgba(0,0,0,.45)]">
+        <div className="relative min-w-0 flex-1 rounded-3xl bg-[var(--c-chart)] p-3 shadow-[inset_0_2px_10px_var(--sh-in)]">
           <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} />
           {!follow && state.status !== 'finished' && (
             <ClayButton className="absolute right-6 top-5" onClick={() => setFollow(true)}>
@@ -226,7 +229,7 @@ function useKeyboardShortcuts() {
 function Readout(props: { label: string; value?: number | null; text?: string; unit?: string; color: string }) {
   const display = props.text ?? (props.value == null ? '—' : props.value.toFixed(1))
   return (
-    <div className="rounded-3xl bg-[#1f2128] px-5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_rgba(0,0,0,.35),0_10px_24px_rgba(0,0,0,.35)]">
+    <div className="rounded-3xl bg-[var(--c-surface)] px-5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_10px_24px_var(--sh)]">
       <div className="flex items-baseline justify-between">
         <span className="text-sm font-semibold tracking-wide" style={{ color: props.color }}>
           {props.label}

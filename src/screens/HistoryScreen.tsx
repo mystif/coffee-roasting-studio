@@ -106,7 +106,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
                 <tr
                   key={r.id}
                   onClick={() => go(`#/historie/${r.id}`)}
-                  className="cursor-pointer bg-[#1f2128] tabular-nums shadow-[0_4px_12px_rgba(0,0,0,.25)] transition hover:bg-[#262a33] [&>td:first-child]:rounded-l-2xl [&>td:last-child]:rounded-r-2xl [&>td]:px-3 [&>td]:py-2.5"
+                  className="cursor-pointer bg-[var(--c-surface)] tabular-nums shadow-[0_4px_12px_var(--sh-soft)] transition hover:bg-[var(--c-raised2)] [&>td:first-child]:rounded-l-2xl [&>td:last-child]:rounded-r-2xl [&>td]:px-3 [&>td]:py-2.5"
                 >
                   <td onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={picked.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4" />
@@ -131,7 +131,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
         </table>
       )}
       {roasts && roasts.length > 0 && rows.length === 0 && <p className="text-zinc-400">Filtru neodpovídá žádné pražení.</p>}
-      <div className="mt-8 flex flex-wrap items-center gap-3 rounded-3xl bg-[#1f2128] p-4 text-sm">
+      <div className="mt-8 flex flex-wrap items-center gap-3 rounded-3xl bg-[var(--c-surface)] p-4 text-sm">
         <span className="font-semibold">Data</span>
         <span className="text-zinc-400">Kompletní záloha všech pražení, káv a profilů v jednom souboru.</span>
         <ClayButton

@@ -2,10 +2,10 @@ import { useEffect, useRef } from 'react'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { fmtTime } from './LiveChart'
+import { cssVar, themeState } from './theme'
 
 export const COMPARE_COLORS = ['#5aa9ff', '#ff6b5a', '#4ade80', '#f59e0b', '#c084fc', '#22d3ee', '#f472b6', '#a3e635']
 
-const AXIS = { stroke: '#9aa0ac', grid: { stroke: 'rgba(255,255,255,.06)', width: 1 }, ticks: { show: false } }
 
 interface Props {
   grid: number[]
@@ -17,9 +17,11 @@ interface Props {
 /** BT (solid), ET (thin) and RoR (dashed) of several roasts, time from CHARGE. Drag = zoom, double-click = reset. */
 export function CompareChart({ grid, series, showET, showRoR }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
+  const { theme } = themeState.use()
 
   useEffect(() => {
     const el = wrap.current!
+    const AXIS = { stroke: cssVar('--chart-axis'), grid: { stroke: cssVar('--chart-grid'), width: 1 }, ticks: { show: false } }
     const s: uPlot.Series[] = [{}]
     const data: (number | null)[][] = [grid]
     series.forEach((x, i) => {
@@ -50,7 +52,7 @@ export function CompareChart({ grid, series, showET, showRoR }: Props) {
         axes: [
           { ...AXIS, incrs: [30, 60, 120, 300], values: (_u, v) => v.map(fmtTime) },
           { ...AXIS, scale: 'temp', size: 48, values: (_u, v) => v.map((x) => `${x}°`) },
-          { ...AXIS, scale: 'ror', side: 1, size: 40, grid: { show: false }, stroke: '#ffd166' },
+          { ...AXIS, scale: 'ror', side: 1, size: 40, grid: { show: false }, stroke: cssVar('--curve-ror') },
         ],
         series: s,
       },
@@ -63,7 +65,7 @@ export function CompareChart({ grid, series, showET, showRoR }: Props) {
       ro.disconnect()
       u.destroy()
     }
-  }, [grid, series, showET, showRoR])
+  }, [grid, series, showET, showRoR, theme])
 
   return <div ref={wrap} className="h-full w-full" />
 }

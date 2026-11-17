@@ -11,6 +11,8 @@ export const PHASE_LABEL: Record<Phase, string> = {
 }
 
 export const PHASE_COLOR = { drying: '#4ade80', maillard: '#f59e0b', development: '#ef6f6c' }
+/** Text colour of phase names in the UI (theme-aware CSS variables). */
+export const PHASE_TEXT = { drying: 'var(--phase-drying)', maillard: 'var(--phase-maillard)', development: 'var(--phase-development)' }
 
 export interface PhaseStats {
   /** seconds from CHARGE to DROP (or to `now` while roasting) */

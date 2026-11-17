@@ -1,6 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useRoastState } from '../live/runtime'
 import { BackupChip } from './storageUi'
+import { ThemeToggle } from './theme'
 
 export type Route =
   | { name: 'live' }
@@ -50,7 +51,7 @@ export function NavTabs() {
   const route = useRoute()
   const roast = useRoastState()
   return (
-    <nav className="flex items-center gap-1 rounded-2xl bg-[#16171d] p-1 shadow-[inset_0_2px_6px_rgba(0,0,0,.45)]">
+    <nav className="flex items-center gap-1 rounded-2xl bg-[var(--c-bg)] p-1 shadow-[inset_0_2px_6px_var(--sh-in)]">
       {TABS.map((t) => {
         const active = t.match.includes(route.name)
         return (
@@ -58,7 +59,7 @@ export function NavTabs() {
             key={t.href}
             href={t.href}
             className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-semibold transition ${
-              active ? 'bg-[#2a2d36] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_4px_10px_rgba(0,0,0,.35)]' : 'text-zinc-400 hover:text-zinc-100'
+              active ? 'bg-[var(--c-raised)] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_4px_10px_var(--sh)]' : 'text-zinc-400 hover:text-zinc-100'
             }`}
           >
             {t.label}
@@ -75,12 +76,13 @@ export function NavTabs() {
 /** Frame for the non-live screens (scrollable content). */
 export function Page({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex h-screen flex-col bg-[#16171d] text-zinc-100">
+    <div className="flex h-screen flex-col bg-[var(--c-bg)] text-zinc-100">
       <header className="flex items-center gap-3 px-4 pt-4">
         <span className="mr-1 text-lg font-semibold tracking-tight">Roasting Studio</span>
         <NavTabs />
         <div className="ml-auto flex items-center gap-2">
           <BackupChip />
+          <ThemeToggle />
           <a href="#/diagnostika" className="px-2 text-sm text-zinc-500 hover:text-zinc-200">
             Diagnostika
           </a>
@@ -96,4 +98,44 @@ export function Page({ title, actions, children }: { title: string; actions?: Re
 }
 
 export const inputCls =
-  'rounded-xl bg-[#16171d] px-3 py-2 text-sm text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400'
+  'rounded-xl bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400'
+
+/** Small "⋯" menu for rarely used actions (keeps the roasting header uncluttered). */
+export function MoreMenu({ items }: { items: { label: string; hint?: string; onClick: () => void }[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false)
+    window.addEventListener('mousedown', close)
+    return () => window.removeEventListener('mousedown', close)
+  }, [open])
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="Další akce"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-chip)] text-lg text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)] hover:text-zinc-100"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="absolute right-0 top-11 z-40 w-64 rounded-2xl bg-[var(--c-raised)] p-1.5 shadow-[0_16px_40px_var(--sh)] ring-1 ring-white/5">
+          {items.map((it) => (
+            <button
+              key={it.label}
+              onClick={() => {
+                setOpen(false)
+                it.onClick()
+              }}
+              className="block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-[var(--c-raised2)]"
+            >
+              <span className="font-semibold">{it.label}</span>
+              {it.hint && <span className="block text-xs text-zinc-400">{it.hint}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

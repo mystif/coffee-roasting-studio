@@ -84,7 +84,7 @@ export function ImportDialog({ initial, onClose }: { initial: Row[]; onClose: (i
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8">
-      <div className="flex max-h-full w-full max-w-6xl flex-col gap-4 rounded-3xl bg-[#1f2128] p-6 shadow-[0_20px_60px_rgba(0,0,0,.6)]">
+      <div className="flex max-h-full w-full max-w-6xl flex-col gap-4 rounded-3xl bg-[var(--c-surface)] p-6 shadow-[0_20px_60px_var(--sh)]">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold">Import z Artisanu</h2>
@@ -104,7 +104,7 @@ export function ImportDialog({ initial, onClose }: { initial: Row[]; onClose: (i
         </datalist>
         <div className="min-h-0 overflow-auto">
           <table className="w-full text-sm tabular-nums">
-            <thead className="sticky top-0 bg-[#1f2128] text-left text-xs uppercase tracking-wide text-zinc-500">
+            <thead className="sticky top-0 bg-[var(--c-surface)] text-left text-xs uppercase tracking-wide text-zinc-500">
               <tr>
                 <th className="py-2 pr-2 font-normal"></th>
                 <th className="pr-3 font-normal">Soubor</th>

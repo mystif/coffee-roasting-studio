@@ -5,10 +5,12 @@ import type { LiveSnapshot } from '../live/LiveSession'
 import { CONTROL_UNIT, EVENT_SHORT, findEvent, type ControlChange, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR } from '../domain/phases'
 import type { ReferenceCurve } from '../domain/reference'
+import { cssVar, themeState } from './theme'
 
-export const CURVE_COLORS = { bt: '#5aa9ff', et: '#ff6b5a', ror: '#ffd166' }
+/** For DOM elements (theme-aware CSS variables). The canvas reads the resolved values via cssVar. */
+export const CURVE_COLORS = { bt: 'var(--curve-bt)', et: 'var(--curve-et)', ror: 'var(--curve-ror)' }
 
-const AXIS = { stroke: '#9aa0ac', grid: { stroke: 'rgba(255,255,255,.06)', width: 1 }, ticks: { show: false } }
+const axis = () => ({ stroke: cssVar('--chart-axis'), grid: { stroke: cssVar('--chart-grid'), width: 1 }, ticks: { show: false } })
 
 export const fmtTime = (s: number) => {
   const sign = s < 0 ? '−' : ''
@@ -46,6 +48,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
   onFollowRef.current = onFollowChange
   const overlayRef = useRef(overlay)
   overlayRef.current = overlay
+  const { theme } = themeState.use()
 
   const setFollow = (f: boolean) => {
     if (followRef.current === f) return
@@ -60,6 +63,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
 
   useEffect(() => {
     const el = wrap.current!
+    const AXIS = axis()
     const opts: uPlot.Options = {
       width: el.clientWidth,
       height: el.clientHeight,
@@ -104,16 +108,16 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
           scale: 'ror',
           side: 1,
           grid: { show: false },
-          stroke: CURVE_COLORS.ror,
+          stroke: cssVar('--curve-ror'),
           values: (_u, splits) => splits.map((v) => `${v}`),
           size: 40,
         },
       ],
       series: [
         {},
-        { label: 'BT', scale: 'temp', stroke: CURVE_COLORS.bt, width: 2.5, spanGaps: false },
-        { label: 'ET', scale: 'temp', stroke: CURVE_COLORS.et, width: 2, spanGaps: false },
-        { label: 'RoR', scale: 'ror', stroke: CURVE_COLORS.ror, width: 2, spanGaps: false },
+        { label: 'BT', scale: 'temp', stroke: cssVar('--curve-bt'), width: 2.5, spanGaps: false },
+        { label: 'ET', scale: 'temp', stroke: cssVar('--curve-et'), width: 2, spanGaps: false },
+        { label: 'RoR', scale: 'ror', stroke: cssVar('--curve-ror'), width: 2, spanGaps: false },
       ],
       hooks: {
         drawClear: [(u) => drawPhases(u, overlayRef.current), (u) => drawReference(u, overlayRef.current)],
@@ -169,11 +173,11 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
       plot.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [theme]) // colours are baked into the chart → rebuild on theme change
 
   useEffect(() => {
     plot.current?.setData([snap.t, snap.bt, snap.et, snap.ror] as uPlot.AlignedData, true)
-  }, [snap, overlay])
+  }, [snap, overlay, theme])
 
   return <div ref={wrap} className="h-full w-full" />
 }
@@ -217,7 +221,7 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
   for (const e of o.events) {
     const x = u.valToPos(e.t, 'x', true)
     if (x < left || x > left + width) continue
-    ctx.strokeStyle = 'rgba(255,255,255,.35)'
+    ctx.strokeStyle = cssVar('--chart-event-line')
     ctx.setLineDash([4 * dpr, 4 * dpr])
     ctx.lineWidth = dpr
     ctx.beginPath()
@@ -227,9 +231,9 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.setLineDash([])
     const label = `${e.type === 'CUSTOM' ? e.note || '★' : EVENT_SHORT[e.type]}${e.bt != null ? ' ' + e.bt.toFixed(1) + '°' : ''}`
     const w = ctx.measureText(label).width + 8 * dpr
-    ctx.fillStyle = 'rgba(30,32,40,.92)'
+    ctx.fillStyle = cssVar('--chart-label-bg')
     ctx.fillRect(x + 3 * dpr, top + 4 * dpr, w, 16 * dpr)
-    ctx.fillStyle = e.auto ? '#cbd5e1' : '#ffffff'
+    ctx.fillStyle = e.auto ? cssVar('--chart-label-auto') : cssVar('--chart-label')
     ctx.fillText(label, x + 7 * dpr, top + 6.5 * dpr)
   }
   // manual control records: small flags along the bottom (gas row, air row, drum row)
@@ -278,16 +282,16 @@ function drawReference(u: uPlot, o: ChartOverlay) {
     }
     ctx.stroke()
   }
-  line(ref.et, 'temp', 'rgba(255,107,90,.38)', 1.5)
-  line(ref.bt, 'temp', 'rgba(90,169,255,.55)', 2)
-  line(ref.ror, 'ror', 'rgba(255,209,102,.40)', 1.5)
+  line(ref.et, 'temp', cssVar('--chart-ref-et'), 1.5)
+  line(ref.bt, 'temp', cssVar('--chart-ref-bt'), 2)
+  line(ref.ror, 'ror', cssVar('--chart-ref-ror'), 1.5)
   ctx.setLineDash([])
   ctx.font = `${500} ${10 * dpr}px Inter, system-ui, sans-serif`
   ctx.textBaseline = 'bottom'
   for (const e of ref.events) {
     if (e.type === 'CHARGE' || e.type === 'TP') continue
     const x = u.valToPos(o.chargeT + e.t, 'x', true)
-    ctx.fillStyle = 'rgba(255,255,255,.35)'
+    ctx.fillStyle = cssVar('--chart-ref-text')
     ctx.fillRect(x, top + height - 34 * dpr - 52 * dpr, dpr, 10 * dpr)
     ctx.fillText(`ref ${EVENT_SHORT[e.type]}`, x + 3 * dpr, top + height - 76 * dpr)
   }

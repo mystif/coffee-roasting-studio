@@ -2,6 +2,7 @@ import type uPlot from 'uplot'
 import { EVENT_LABEL, findEvent, type ControlKind } from '../domain/events'
 import { computeRoR } from '../domain/ror'
 import { db } from '../storage/db'
+import { cssVar } from '../ui/theme'
 import type { RoastRecord } from '../storage/roastRecord'
 
 export function download(name: string, data: BlobPart, type: string) {
@@ -52,25 +53,25 @@ export async function chartToPng(u: uPlot, title: string, subtitle: string): Pro
   c.width = src.width + 32 * dpr
   c.height = src.height + head + 16 * dpr
   const ctx = c.getContext('2d')!
-  ctx.fillStyle = '#1b1d23'
+  ctx.fillStyle = cssVar('--c-chart')
   ctx.fillRect(0, 0, c.width, c.height)
   ctx.drawImage(src, 16 * dpr, head)
-  ctx.fillStyle = '#f4f4f5'
+  ctx.fillStyle = cssVar('--chart-label')
   ctx.font = `600 ${20 * dpr}px Inter, system-ui, sans-serif`
   ctx.fillText(title, 20 * dpr, 30 * dpr)
-  ctx.fillStyle = '#a1a1aa'
+  ctx.fillStyle = cssVar('--chart-axis')
   ctx.font = `400 ${13 * dpr}px Inter, system-ui, sans-serif`
   ctx.fillText(subtitle, 20 * dpr, 52 * dpr)
   const legend: [string, string][] = [
-    ['BT', '#5aa9ff'],
-    ['ET', '#ff6b5a'],
-    ['RoR', '#ffd166'],
+    ['BT', cssVar('--curve-bt')],
+    ['ET', cssVar('--curve-et')],
+    ['RoR', cssVar('--curve-ror')],
   ]
   let x = c.width - 200 * dpr
   for (const [name, color] of legend) {
     ctx.fillStyle = color
     ctx.fillRect(x, 24 * dpr, 18 * dpr, 4 * dpr)
-    ctx.fillStyle = '#e4e4e7'
+    ctx.fillStyle = cssVar('--chart-label')
     ctx.fillText(name, x + 24 * dpr, 30 * dpr)
     x += 64 * dpr
   }

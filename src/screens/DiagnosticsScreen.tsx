@@ -87,14 +87,14 @@ export function DiagnosticsScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#16171d] text-zinc-100 p-6 font-sans">
+    <div className="min-h-screen bg-[var(--c-bg)] text-zinc-100 p-6 font-sans">
       <div className="mx-auto max-w-6xl space-y-5">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Coffee Roasting Studio</h1>
             <p className="text-zinc-400 text-sm">Diagnostika připojení Dongyi BR-3.5 (pouze čtení) · <a className="underline" href="#/">zpět na pražení</a></p>
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-[#22242c] px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_rgba(0,0,0,.35)]">
+          <div className="flex items-center gap-2 rounded-full bg-[var(--c-chip)] px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]">
             <span className={`h-3 w-3 rounded-full ${STATE_COLOR[state]}`} />
             <span className="text-sm font-medium">{STATE_LABEL[state]}</span>
           </div>
@@ -209,12 +209,12 @@ function Choice(props: { label: string; value: number; options: number[]; unit: 
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-zinc-400">{props.label}</span>
-      <div className="flex gap-1 rounded-xl bg-[#16171d] p-1">
+      <div className="flex gap-1 rounded-xl bg-[var(--c-bg)] p-1">
         {props.options.map((o) => (
           <button
             key={o}
             onClick={() => props.onChange(o)}
-            className={`rounded-lg px-3 py-1 ${o === props.value ? 'bg-[#2f323c] text-white' : 'text-zinc-400'}`}
+            className={`rounded-lg px-3 py-1 ${o === props.value ? 'bg-[var(--c-active)] text-zinc-100' : 'text-zinc-400'}`}
           >
             {props.unit === 's' ? `${o / 1000} s` : `${o} ms`}
           </button>

@@ -4,7 +4,7 @@ import { persistState } from '../storage/persistence'
 import { applyUpdate, pwaState } from '../pwa'
 
 const chip =
-  'flex items-center gap-2 rounded-full bg-[#22242c] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_rgba(0,0,0,.35)]'
+  'flex items-center gap-2 rounded-full bg-[var(--c-chip)] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]'
 
 /** Header chip: backup folder state, one click fixes what is missing. */
 export function BackupChip() {
@@ -15,7 +15,7 @@ export function BackupChip() {
     return (
       <button className={chip} onClick={run(chooseBackupFolder)} title="Každé uložené pražení se zapíše jako soubor do této složky. Kliknutím změníš složku.">
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-        Záloha: {b.folder}
+        <span className="max-w-32 truncate">Záloha: {b.folder}</span>
         {b.pending > 0 && <span className="text-amber-300">({b.pending} čeká)</span>}
       </button>
     )
@@ -23,14 +23,14 @@ export function BackupChip() {
     return (
       <button className={`${chip} ring-1 ring-amber-400/60`} onClick={run(grantBackupPermission)} title="Chrome po restartu znovu žádá o povolení zápisu do složky">
         <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-        Povolit zálohu do „{b.folder}“{b.pending > 0 && ` (${b.pending} čeká)`}
+        Povolit zálohu{b.pending > 0 && ` (${b.pending})`}
       </button>
     )
   return (
     <button className={`${chip} ring-1 ring-amber-400/60`} onClick={run(chooseBackupFolder)} title={b.error || 'Vyber složku (ideálně iCloud Drive nebo Dropbox)'}>
       <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-      {b.status === 'error' ? 'Záloha selhala – vybrat složku' : 'Nastavit zálohu'}
-      {b.pending > 0 && <span className="text-amber-300">({b.pending} čeká)</span>}
+      {b.status === 'error' ? 'Záloha selhala' : 'Nastavit zálohu'}
+      {b.pending > 0 && <span className="text-amber-300">({b.pending})</span>}
     </button>
   )
 }
@@ -88,7 +88,7 @@ export function UpdateToast({ roasting }: { roasting: boolean }) {
   const p = pwaState.use()
   if (!p.updateReady || roasting) return null
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-2xl bg-[#262a33] px-5 py-3 text-sm shadow-[0_12px_30px_rgba(0,0,0,.5)] ring-1 ring-white/10">
+    <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-2xl bg-[var(--c-raised2)] px-5 py-3 text-sm shadow-[0_12px_30px_var(--sh)] ring-1 ring-white/10">
       Je připravená nová verze aplikace.
       <button className="rounded-xl bg-sky-500 px-3 py-1.5 font-semibold text-sky-950" onClick={applyUpdate}>
         Aktualizovat

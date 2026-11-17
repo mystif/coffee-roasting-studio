@@ -1,6 +1,98 @@
 @import 'tailwindcss';
 
+/* ── Theme tokens ───────────────────────────────────────────
+   Dark is the default (best contrast for the chart while roasting).
+   Light remaps the surfaces, the zinc text scale and the pale accent
+   text shades, so components need no per-theme classes. */
+
 :root {
   color-scheme: dark;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --c-bg: #16171d;
+  --c-surface: #1f2128;
+  --c-chip: #22242c;
+  --c-raised: #2a2d36;
+  --c-raised2: #262a33;
+  --c-active: #2f323c;
+  --c-chart: #1b1d23;
+  --sh: rgba(0, 0, 0, 0.35);
+  --sh-in: rgba(0, 0, 0, 0.45);
+  --sh-soft: rgba(0, 0, 0, 0.25);
+
+  /* curves and chart */
+  --curve-bt: #5aa9ff;
+  --curve-et: #ff6b5a;
+  --curve-ror: #ffd166;
+  --chart-axis: #9aa0ac;
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-label-bg: rgba(30, 32, 40, 0.92);
+  --chart-label: #ffffff;
+  --chart-label-auto: #cbd5e1;
+  --chart-event-line: rgba(255, 255, 255, 0.35);
+  --chart-ref-bt: rgba(90, 169, 255, 0.55);
+  --chart-ref-et: rgba(255, 107, 90, 0.38);
+  --chart-ref-ror: rgba(255, 209, 102, 0.4);
+  --chart-ref-text: rgba(255, 255, 255, 0.35);
+  --phase-drying: #4ade80;
+  --phase-maillard: #f59e0b;
+  --phase-development: #ef6f6c;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --c-bg: #e9ebf1;
+  --c-surface: #f6f7fb;
+  --c-chip: #f6f7fb;
+  --c-raised: #ffffff;
+  --c-raised2: #eef0f6;
+  --c-active: #ffffff;
+  --c-chart: #fbfcfe;
+  --sh: rgba(60, 66, 90, 0.14);
+  --sh-in: rgba(60, 66, 90, 0.1);
+  --sh-soft: rgba(60, 66, 90, 0.1);
+
+  --curve-bt: #1f6fd8;
+  --curve-et: #d63f2c;
+  --curve-ror: #c98600;
+  --chart-axis: #5b6170;
+  --chart-grid: rgba(20, 24, 40, 0.07);
+  --chart-label-bg: rgba(255, 255, 255, 0.94);
+  --chart-label: #15171c;
+  --chart-label-auto: #4b5260;
+  --chart-event-line: rgba(20, 24, 40, 0.35);
+  --chart-ref-bt: rgba(31, 111, 216, 0.5);
+  --chart-ref-et: rgba(214, 63, 44, 0.35);
+  --chart-ref-ror: rgba(201, 134, 0, 0.45);
+  --chart-ref-text: rgba(20, 24, 40, 0.45);
+  --phase-drying: #15803d;
+  --phase-maillard: #b45309;
+  --phase-development: #c2410c;
+
+  /* zinc text scale flipped: light text classes become dark text */
+  --color-zinc-100: oklch(21% 0.006 285.885);
+  --color-zinc-200: oklch(27.4% 0.006 286.033);
+  --color-zinc-300: oklch(37% 0.013 285.805);
+  --color-zinc-400: oklch(44.2% 0.017 285.786);
+  --color-zinc-500: oklch(52% 0.016 285.938);
+  --color-zinc-600: oklch(70.5% 0.015 286.067);
+  --color-zinc-700: oklch(87.1% 0.006 286.286);
+
+  /* pale accent text → readable on light surfaces */
+  --color-sky-100: oklch(39.1% 0.09 240.876);
+  --color-sky-200: oklch(44.3% 0.11 240.79);
+  --color-sky-300: oklch(50% 0.134 242.749);
+  --color-amber-200: oklch(55.5% 0.163 48.998);
+  --color-amber-300: oklch(55.5% 0.163 48.998);
+  --color-emerald-200: oklch(50.8% 0.118 165.612);
+  --color-emerald-300: oklch(50.8% 0.118 165.612);
+  --color-rose-200: oklch(51.4% 0.222 16.935);
+  --color-rose-300: oklch(51.4% 0.222 16.935);
+  --color-red-300: oklch(50.5% 0.213 27.518);
+  --color-orange-300: oklch(55.3% 0.195 38.402);
+}
+
+body {
+  background: var(--c-bg);
 }

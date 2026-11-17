@@ -1,6 +1,6 @@
 # Coffee Roasting Studio – specifikace v1
 
-Stav: **návrh k odsouhlasení** · 2026-11-16
+Stav: **v1 dokončena (S0–S8)** · 2026-11-17 · ověřeno testy a v prohlížeči, na pražičce ověřen S0
 
 ## 1. Cíl a hranice
 
@@ -18,6 +18,7 @@ Jednoduchý monitorovací a záznamový nástroj pro pražičku **Dongyi BR-3.5*
 | Data | **Lokálně v prohlížeči (IndexedDB)** + automatická záloha do složky na disku | Bez cloudu (rozhodnutí uživatele). Funguje i úplně offline. |
 | Aplikace | Statická webová aplikace (PWA): **Vite + React + TypeScript + Tailwind** | Bez serveru není potřeba Next.js. Méně závislostí, rychlejší. |
 | Hosting | **GitHub Pages**, nasazení automaticky z GitHubu | Zdarma, HTTPS (Web Serial ho vyžaduje), aktualizace přes push. |
+| Detekce událostí | **Algoritmy Artisanu** (BTbreak, findTPint, fáze 130 °C) | Ověřeno na 35 reálných praženích uživatele. |
 | Graf | **uPlot** | Nejrychlejší knihovna pro živé časové řady, malá velikost. |
 | Jazyk | Čeština, pražicí termíny anglicky (Charge, TP, Dry End, FC, Drop, RoR, DTR) | Přání uživatele. |
 | Výchozí motiv | Tmavý (Claymorphism), světlý volitelně | Lepší kontrast grafu. |
@@ -155,3 +156,19 @@ Settings    rorSpan, dryEndTemp, sampleInterval, theme, backupFolderHandle
 - **Chrome 138 bez aktualizací** (Big Sur). Přijato. Aplikace nepoužívá nic novějšího než Chrome 117.
 - **Data jen v prohlížeči.** Zmírněno automatickou zálohou do složky a exportem.
 - **Web Serial s Bluetooth portem na Big Suru** nebyl prakticky ověřen. Rozhodne S0, záloha je malý lokální bridge.
+
+## 13. Stav realizace
+
+| # | Hotovo | Ověření |
+|---|---|---|
+| S0 | ✅ | reálná pražička: Chrome 138 / Big Sur, odezva 61 ms, obnovení spojení, BT/ET potvrzeno |
+| S1 | ✅ | RoR shodné s Artisanem (±0,5 °C/min při FCs) na 35 praženích |
+| S2 | ✅ | auto Charge/TP/Drop podle Artisanu, fáze a DTR na sekundu |
+| S3 | ✅ | obnova po reloadu, uložení po Finish, offline cache |
+| S4 | ✅ | kávy, historie, detail, duplikace |
+| S5 | ✅ | import všech 35 `.alog` – fáze, TP, Charge/Drop BT shodné s Artisanem |
+| S6 | ✅ | profily, referenční křivka, ΔBT / Δčas / ΔRoR, plán plynu |
+| S7 | ✅ | export `.alog` (round-trip + `ast.literal_eval`), CSV, PNG, JSON, záloha/obnova, analýza |
+| S8 | ✅ | světlý/tmavý motiv, rozvržení 1280×800, README |
+
+**Zbývá ověřit uživatelem:** otevření exportovaného `.alog` v Artisanu 3.1, zápis zálohy do složky, celé pražení na pražičce.

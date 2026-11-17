@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { alignCurves, metrics, summarize, type RoastMetrics } from '../domain/compare'
-import { PHASE_COLOR } from '../domain/phases'
+import { PHASE_TEXT } from '../domain/phases'
 import { db } from '../storage/db'
 import { fmtDate } from '../storage/roastQueries'
 import type { RoastRecord } from '../storage/roastRecord'
@@ -54,7 +54,7 @@ function Compare({ selected, all, ids, setIds }: { selected: RoastRecord[]; all:
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-2 text-lg font-semibold">Porovnání pražení</h2>
         {selected.map((r, i) => (
-          <span key={r.id} className="flex items-center gap-2 rounded-full bg-[#16171d] py-1 pl-3 pr-1 text-sm">
+          <span key={r.id} className="flex items-center gap-2 rounded-full bg-[var(--c-bg)] py-1 pl-3 pr-1 text-sm">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: COMPARE_COLORS[i % COMPARE_COLORS.length] }} />
             <a href={`#/historie/${r.id}`} className="hover:underline">
               {r.coffee || 'Bez názvu'} · {fmtDate(r.roastDate)}
@@ -90,7 +90,7 @@ function Compare({ selected, all, ids, setIds }: { selected: RoastRecord[]; all:
         <p className="text-sm text-zinc-400">Vyber pražení výše, v Historii zaškrtni řádky a klikni Porovnat, nebo použij tlačítko u kávy ve statistikách.</p>
       ) : (
         <>
-          <div className="h-[26rem] rounded-2xl bg-[#1b1d23] p-2">
+          <div className="h-[26rem] rounded-2xl bg-[var(--c-chart)] p-2">
             <CompareChart grid={aligned.grid} series={aligned.series} showET={showET} showRoR={showRoR} />
           </div>
           <div className="overflow-auto">
@@ -112,7 +112,7 @@ function Compare({ selected, all, ids, setIds }: { selected: RoastRecord[]; all:
                 {row('Turning Point', (_r, mm) => `${t(mm.tpTime)} · ${n1(mm.tpBT, '°')}`, pm('tpTime', fmtTime))}
                 {(['drying', 'maillard', 'development'] as const).map((k) => (
                   <tr key={k} className="border-t border-white/5">
-                    <td className="py-1.5 pr-4 font-semibold" style={{ color: PHASE_COLOR[k] }}>
+                    <td className="py-1.5 pr-4 font-semibold" style={{ color: PHASE_TEXT[k] }}>
                       {k === 'drying' ? 'Drying' : k === 'maillard' ? 'Maillard' : 'Development'}
                     </td>
                     {selected.map((r) => (
