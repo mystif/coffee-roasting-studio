@@ -16,6 +16,7 @@ import { CURVE_COLORS, LiveChart, fmtTime, type ChartOverlay } from '../ui/LiveC
 import { ClayButton } from '../ui/clay'
 import { ControlsBar, EventPanel, PhaseStrip, ReferenceStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
 import { referenceState } from '../live/referenceState'
+import { estimates, useFcTarget } from '../live/estimates'
 import { MoreMenu, NavTabs } from '../ui/nav'
 import { ThemeToggle } from '../ui/theme'
 import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
@@ -52,9 +53,11 @@ export function LiveScreen() {
   const roastTime = now === null ? null : charge ? (drop?.t ?? now) - charge.t : state.startT !== null ? now - state.startT : null
 
   const ref = referenceState.use()
+  const fcTarget = useFcTarget(state, ref.curve)
+  const est = useMemo(() => estimates(snap, state, fcTarget), [snap, state, fcTarget.target, fcTarget.basis]) // eslint-disable-line react-hooks/exhaustive-deps
   const overlay: ChartOverlay = useMemo(
-    () => ({ events: state.events, controls: state.controls, chargeT: charge?.t ?? null, now, reference: ref.curve }),
-    [state.events, state.controls, charge?.t, now, ref.curve],
+    () => ({ events: state.events, controls: state.controls, chargeT: charge?.t ?? null, now, reference: ref.curve, estimates: est }),
+    [state.events, state.controls, charge?.t, now, ref.curve, est],
   )
 
   useKeyboardShortcuts()
@@ -149,7 +152,7 @@ export function LiveScreen() {
         />
       </div>
 
-      <PhaseStrip state={state} now={now} />
+      <PhaseStrip state={state} now={now} est={est} />
       {ref.curve && state.status !== 'finished' && (
         <ReferenceStrip
           curve={ref.curve}

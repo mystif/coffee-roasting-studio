@@ -129,13 +129,23 @@ export function EventPanel({ state }: { state: RoastState }) {
 
 // ── phase strip ────────────────────────────────────────────
 
-export function PhaseStrip({ state, now }: { state: RoastState; now: number | null }) {
+export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: number | null; est?: import('../live/estimates').Estimate[] }) {
   const stats = now === null ? null : phaseStats(state.events, now)
   const phase = currentPhase(state.events)
   const fcs = findEvent(state.events, 'FCs')
   const drop = findEvent(state.events, 'DROP')
   const sinceFc = fcs && now !== null ? (drop?.t ?? now) - fcs.t : null
-  const seg = (name: 'drying' | 'maillard' | 'development', sec: number | null, pct: number | null) => (
+  const charge = findEvent(state.events, 'CHARGE')
+  const estDE = est.find((e) => e.type === 'DRY')
+  const estFC = est.find((e) => e.type === 'FCs')
+  const rel = (t: number) => fmtTime(t - (charge?.t ?? 0))
+  const hint = (e?: import('../live/estimates').Estimate) =>
+    e ? (
+      <span className="truncate text-xs font-semibold text-zinc-300" title={`Odhad podle aktuální RoR, cíl ${e.target.toFixed(1)} °C (${e.basis})`}>
+        ~{rel(e.t)} <span className="font-normal text-zinc-500">za {fmtTime(e.inSec)}</span>
+      </span>
+    ) : null
+  const seg = (name: 'drying' | 'maillard' | 'development', sec: number | null, pct: number | null, estimate?: import('../live/estimates').Estimate) => (
     <div
       className="flex min-w-0 items-center justify-between gap-2 rounded-xl px-3 py-1.5"
       style={{
@@ -147,27 +157,35 @@ export function PhaseStrip({ state, now }: { state: RoastState; now: number | nu
       <span className="truncate text-xs font-semibold" style={{ color: PHASE_TEXT[name] }}>
         {PHASE_LABEL[name]}
       </span>
-      <span className="text-sm font-semibold tabular-nums text-zinc-100">
-        {sec == null ? '—' : fmtTime(sec)} <span className="text-zinc-400">{pct == null ? '' : `${pct.toFixed(0)} %`}</span>
-      </span>
+      {sec == null && estimate ? (
+        hint(estimate)
+      ) : (
+        <span className="text-sm font-semibold tabular-nums text-zinc-100">
+          {sec == null ? '—' : fmtTime(sec)} <span className="text-zinc-400">{pct == null ? '' : `${pct.toFixed(0)} %`}</span>
+        </span>
+      )}
     </div>
   )
   return (
     <div className={`${CARD} flex items-center gap-3 px-3 py-2`}>
       <div className="flex min-w-0 flex-1 gap-1.5">
         {seg('drying', stats?.drying ?? null, stats?.dryingPct ?? null)}
-        {seg('maillard', stats?.maillard ?? null, stats?.maillardPct ?? null)}
-        {seg('development', stats?.development ?? null, stats?.developmentPct ?? null)}
+        {seg('maillard', stats?.maillard ?? null, stats?.maillardPct ?? null, estDE)}
+        {seg('development', stats?.development ?? null, stats?.developmentPct ?? null, estFC)}
       </div>
-      <Mini label="od FC" value={sinceFc === null ? '—' : fmtTime(sinceFc)} />
+      {sinceFc === null && estFC ? (
+        <Mini label="do FC ~" value={fmtTime(estFC.inSec)} title={`FC kolem ${rel(estFC.t)} při ${estFC.target.toFixed(1)} °C (${estFC.basis})`} />
+      ) : (
+        <Mini label="od FC" value={sinceFc === null ? '—' : fmtTime(sinceFc)} />
+      )}
       <Mini label="DTR" value={stats?.dtr == null ? '—' : `${stats.dtr.toFixed(1)} %`} />
     </div>
   )
 }
 
-function Mini({ label, value }: { label: string; value: string }) {
+function Mini({ label, value, title }: { label: string; value: string; title?: string }) {
   return (
-    <div className="w-24 text-right">
+    <div className="w-24 text-right" title={title}>
       <div className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</div>
       <div className="text-2xl font-semibold tabular-nums">{value}</div>
     </div>

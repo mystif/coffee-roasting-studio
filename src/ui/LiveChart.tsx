@@ -28,6 +28,8 @@ export interface ChartOverlay {
   now: number | null
   /** background curve, aligned at CHARGE (drawn only once CHARGE is known) */
   reference?: ReferenceCurve | null
+  /** estimated Dry End / First Crack (session time) */
+  estimates?: { type: 'DRY' | 'FCs'; t: number; target: number }[]
 }
 
 interface Props {
@@ -239,6 +241,7 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
   }
   drawControlBadges(u, o)
   drawBtPoints(u, o)
+  drawEstimates(u, o)
   ctx.restore()
 }
 
@@ -396,6 +399,44 @@ function drawBtPoints(u: uPlot, o: ChartOverlay) {
     ctx.stroke()
     ctx.fillStyle = cssVar('--chart-label')
     ctx.fillText(label, bx + 6 * dpr, by + h / 2 + 0.5 * dpr)
+  }
+  ctx.restore()
+}
+
+// ── estimated Dry End / First Crack: dotted line + target point on BT ──
+function drawEstimates(u: uPlot, o: ChartOverlay) {
+  if (!o.estimates?.length) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio
+  const { left, top, width, height } = u.bbox
+  ctx.save()
+  ctx.font = `italic 600 ${11 * dpr}px Inter, system-ui, sans-serif`
+  ctx.textBaseline = 'top'
+  for (const e of o.estimates) {
+    const x = u.valToPos(e.t, 'x', true)
+    if (x < left || x > left + width) continue
+    const y = u.valToPos(e.target, 'temp', true)
+    ctx.strokeStyle = cssVar('--curve-bt')
+    ctx.globalAlpha = 0.55
+    ctx.setLineDash([2 * dpr, 4 * dpr])
+    ctx.lineWidth = 1.5 * dpr
+    ctx.beginPath()
+    ctx.moveTo(x, top + 24 * dpr)
+    ctx.lineTo(x, top + height)
+    ctx.stroke()
+    ctx.setLineDash([])
+    ctx.beginPath()
+    ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2)
+    ctx.lineWidth = 2 * dpr
+    ctx.stroke()
+    ctx.globalAlpha = 1
+    const label = `~${EVENT_SHORT[e.type]} ${o.chargeT === null ? '' : fmtTime(e.t - o.chargeT)}`
+    const w = ctx.measureText(label).width + 10 * dpr
+    const bx = Math.min(x + 4 * dpr, left + width - w)
+    ctx.fillStyle = cssVar('--chart-label-bg')
+    ctx.fillRect(bx, top + 26 * dpr, w, 17 * dpr)
+    ctx.fillStyle = cssVar('--chart-label-auto')
+    ctx.fillText(label, bx + 5 * dpr, top + 29 * dpr)
   }
   ctx.restore()
 }
