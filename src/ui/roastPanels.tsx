@@ -224,8 +224,8 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
     roast.start({ coffee: linked?.name ?? name, coffeeId: linked?.id ?? null, greenWeightG: parseKg(weight) })
   }
   return (
-    <div className={`${CARD} flex items-end gap-4 px-5 py-3`}>
-      <label className="flex flex-1 flex-col gap-1 text-xs text-zinc-400">
+    <div className={`${CARD} flex flex-wrap items-end gap-x-4 gap-y-2 px-5 py-3`}>
+      <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs text-zinc-400">
         <span>
           Káva {name && !match && <span className="text-sky-300">· nová, přidá se do seznamu káv</span>}
         </span>
@@ -287,7 +287,7 @@ export function ControlsBar({ state }: { state: RoastState }) {
   const enabled = state.status === 'roasting'
   const c = state.current
   return (
-    <div className={`${CARD} flex items-center gap-5 px-5 py-2.5 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
+    <div className={`${CARD} flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-2.5 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
       <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-zinc-500">
         Ruční
         <br />
@@ -480,7 +480,7 @@ export function ReferenceStrip(props: {
   if (!props.charged || roastTime === null)
     return (
       <div className={`${CARD} px-4 py-2 text-sm text-zinc-400`}>
-        Reference <b className="text-zinc-200">{curve.label}</b> – zarovná se při Charge.
+        Reference <b className="text-zinc-200">{curve.label}</b> – v grafu jako náhled, porovnávání (Δ BT, Δ čas, plán plynu) začne po Charge.
       </div>
     )
   const d = deviation(curve, roastTime, props.bt, props.ror, props.afterTP)

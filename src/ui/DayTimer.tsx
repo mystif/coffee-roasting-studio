@@ -29,7 +29,7 @@ export function DayTimer() {
   if (d.startedAt === null) {
     return (
       <div className={box} title="Den se spustí sám, jakmile začne stoupat ET (zapálený hořák)">
-        <span className="text-xs text-zinc-400">
+        <span className="whitespace-nowrap text-xs text-zinc-400">
           Den pražení
           <br />
           <span className="text-zinc-500">čeká na nahřívání (ET)</span>

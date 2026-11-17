@@ -13,6 +13,9 @@ export const CURVE_COLORS = { bt: 'var(--curve-bt)', et: 'var(--curve-et)', ror:
 
 const axis = () => ({ stroke: cssVar('--chart-axis'), grid: { stroke: cssVar('--chart-grid'), width: 1 }, ticks: { show: false } })
 
+/** Time origin of the chart: CHARGE, or the preview anchor while a reference is shown before CHARGE. */
+const zeroT = (o: ChartOverlay): number | null => o.chargeT ?? (o.reference ? (o.previewAt ?? 0) : null)
+
 export const fmtTime = (s: number) => {
   const sign = s < 0 ? '−' : ''
   const a = Math.abs(Math.round(s))
@@ -26,8 +29,10 @@ export interface ChartOverlay {
   chargeT: number | null
   /** session time where the roast ends (DROP), phases are drawn up to `now` before that */
   now: number | null
-  /** background curve, aligned at CHARGE (drawn only once CHARGE is known) */
+  /** background curve, aligned at CHARGE */
   reference?: ReferenceCurve | null
+  /** before CHARGE the reference is previewed as if CHARGE happened at this session time (now) */
+  previewAt?: number | null
   /** estimated Dry End / First Crack (session time) */
   estimates?: { type: 'DRY' | 'FCs'; t: number; target: number }[]
 }
@@ -78,9 +83,9 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
           range: (_u, _min, max) => {
             if (!followRef.current && userRange.current) return userRange.current
             const last = Number.isFinite(max) ? max : 0
-            const c = overlayRef.current.chargeT
+            const c = zeroT(overlayRef.current)
             const refEnd = overlayRef.current.reference?.t.at(-1) ?? 0
-            if (c !== null) return [Math.max(0, c - 30), Math.max(c + 720, c + Math.min(refEnd, 1500) + 30, last + 60)]
+            if (c !== null) return [c - 30, Math.max(c + 720, c + Math.min(refEnd, 1500) + 30, last + 60)]
             return last < 540 ? [0, Math.max(600, last + 60)] : [last - 540, last + 60]
           },
         },
@@ -98,12 +103,12 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
           incrs: [15, 30, 60, 120, 300, 600],
           // ticks on whole minutes of roast time (counted from CHARGE)
           splits: (_u, _ax, min, max, incr) => {
-            const c = overlayRef.current.chargeT ?? 0
+            const c = zeroT(overlayRef.current) ?? 0
             const out: number[] = []
             for (let v = c + Math.ceil((min - c) / incr) * incr; v <= max; v += incr) out.push(v)
             return out
           },
-          values: (_u, splits) => splits.map((v) => fmtTime(v - (overlayRef.current.chargeT ?? 0))),
+          values: (_u, splits) => splits.map((v) => fmtTime(v - (zeroT(overlayRef.current) ?? 0))),
         },
         { ...AXIS, scale: 'temp', values: (_u, splits) => splits.map((v) => `${v}°`), size: 48 },
         {
@@ -247,7 +252,8 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
 
 function drawReference(u: uPlot, o: ChartOverlay) {
   const ref = o.reference
-  if (!ref || o.chargeT === null) return
+  const zero = zeroT(o)
+  if (!ref || zero === null) return
   const ctx = u.ctx
   const dpr = devicePixelRatio
   const { left, top, width, height } = u.bbox
@@ -267,7 +273,7 @@ function drawReference(u: uPlot, o: ChartOverlay) {
         pen = false
         continue
       }
-      const px = u.valToPos(o.chargeT! + ref.t[i], 'x', true)
+      const px = u.valToPos(zero + ref.t[i], 'x', true)
       const py = u.valToPos(y, scale, true)
       if (pen) ctx.lineTo(px, py)
       else ctx.moveTo(px, py)
@@ -283,7 +289,7 @@ function drawReference(u: uPlot, o: ChartOverlay) {
   ctx.textBaseline = 'bottom'
   for (const e of ref.events) {
     if (e.type === 'CHARGE' || e.type === 'TP') continue
-    const x = u.valToPos(o.chargeT + e.t, 'x', true)
+    const x = u.valToPos(zero + e.t, 'x', true)
     ctx.fillStyle = cssVar('--chart-ref-text')
     ctx.fillRect(x, top + height - 34 * dpr - 52 * dpr, dpr, 10 * dpr)
     ctx.fillText(`ref ${EVENT_SHORT[e.type]}`, x + 3 * dpr, top + height - 76 * dpr)

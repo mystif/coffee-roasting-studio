@@ -56,7 +56,7 @@ export function LiveScreen() {
   const fcTarget = useFcTarget(state, ref.curve)
   const est = useMemo(() => estimates(snap, state, fcTarget), [snap, state, fcTarget.target, fcTarget.basis]) // eslint-disable-line react-hooks/exhaustive-deps
   const overlay: ChartOverlay = useMemo(
-    () => ({ events: state.events, controls: state.controls, chargeT: charge?.t ?? null, now, reference: ref.curve, estimates: est }),
+    () => ({ events: state.events, controls: state.controls, chargeT: charge?.t ?? null, now, reference: ref.curve, previewAt: now ?? 0, estimates: est }),
     [state.events, state.controls, charge?.t, now, ref.curve, est],
   )
 
@@ -173,9 +173,14 @@ export function LiveScreen() {
               Sledovat živě
             </ClayButton>
           )}
-          {snap.t.length === 0 && (
+          {snap.t.length === 0 && !ref.curve && (
             <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500">
               Připoj pražičku. Graf se začne kreslit s prvním měřením.
+            </p>
+          )}
+          {ref.curve && !charge && (
+            <p className="pointer-events-none absolute left-16 top-10 rounded-lg bg-[var(--c-chart)]/90 px-2 py-1 text-xs text-zinc-400">
+              Náhled reference – čas 0:00 = Charge. Po Charge se křivky zarovnají a začne porovnávání.
             </p>
           )}
           {state.status === 'finished' && <SummaryPanel state={state} />}
