@@ -9,7 +9,7 @@ const kg = (x: number) => `${x.toFixed(2).replace('.', ',')} kg`
 const dávky = (n: number) => (n === 1 ? '1 dávka' : n >= 2 && n <= 4 ? `${n} dávky` : `${n} dávek`)
 
 /** Total time of the roasting day and estimated gas use (shown in the bottom bar). */
-export function DayTimer() {
+export function DayTimer({ batchSec = null }: { batchSec?: number | null } = {}) {
   const d = dayState.use()
   const [now, setNow] = useState(Date.now())
   const running = d.startedAt !== null && d.stoppedAt === null
@@ -23,7 +23,7 @@ export function DayTimer() {
     [d.startedAt, d.stoppedAt],
   )
 
-  const box = 'ml-auto flex items-center gap-3 rounded-2xl bg-[var(--c-bg)] px-3 py-1.5'
+  const box = 'ml-auto flex items-center gap-3 rounded-2xl bg-[var(--c-bg)] px-3 py-1'
   const btn = 'rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wide shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_3px_8px_var(--sh)] active:translate-y-px'
 
   if (d.startedAt === null) {
@@ -52,9 +52,15 @@ export function DayTimer() {
         <div className="text-xl font-semibold tabular-nums">{fmtDuration(ms)}</div>
       </div>
       <div className="leading-tight">
-        <div className="text-[11px] uppercase tracking-wide text-zinc-500">Plyn ~</div>
+        <div className="text-[11px] uppercase tracking-wide text-zinc-500">Plyn den ~</div>
         <div className="whitespace-nowrap text-xl font-semibold tabular-nums text-orange-300">{kg(gasKg(ms))}</div>
       </div>
+      {batchSec !== null && (
+        <div className="leading-tight" title="Spotřeba plynu této dávky (od Start Roasting) při 0,5 kg/h">
+          <div className="text-[11px] uppercase tracking-wide text-zinc-500">dávka ~</div>
+          <div className="whitespace-nowrap text-xl font-semibold tabular-nums text-orange-300">{kg(gasKg(batchSec * 1000))}</div>
+        </div>
+      )}
       <div className="whitespace-nowrap text-xs text-zinc-400">{dávky(roasts ?? 0)}</div>
       {d.stoppedAt ? (
         <button className={`${btn} bg-[var(--c-raised)] text-zinc-200`} onClick={() => startDay(Date.now(), 'manual')} title="Začít nový den ručně (jinak se spustí sám při nahřívání)">

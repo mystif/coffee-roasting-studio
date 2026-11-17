@@ -130,7 +130,7 @@ export function DiagnosticsScreen() {
                 Odpojit
               </ClayButton>
             </div>
-            <Choice label="Interval čtení" value={intervalMs} options={[500, 1000, 2000]} unit="s" onChange={setIntervalMs} />
+            <Choice label="Interval čtení" value={intervalMs} options={[250, 500, 1000, 2000]} unit="s" onChange={setIntervalMs} />
             <Choice label="Timeout odpovědi" value={timeoutMs} options={[400, 1000, 2000]} unit="ms" onChange={setTimeoutMs} />
             {error && <p className="text-sm text-red-300">{error}</p>}
           </Panel>

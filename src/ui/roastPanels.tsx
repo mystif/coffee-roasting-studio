@@ -9,14 +9,14 @@ import { AIR_PRESETS, GAS_PRESETS, type RoastState } from '../live/roastStore'
 
 /** Drum speed knob 0–100, in steps of 5. */
 const DRUM_VALUES = Array.from({ length: 21 }, (_, i) => i * 5)
-import { formatControl, shade } from './chartMarks'
+import { formatControl, shade, textOn } from './chartMarks'
 import type { ControlKind } from '../domain/events'
 import { roast } from '../live/runtime'
 import { ClayButton } from './clay'
 import { fmtTime } from './LiveChart'
 import { SaveStatus } from './storageUi'
 import { DayTimer } from './DayTimer'
-import { UpdateProfileButton } from './UpdateProfileButton'
+import { SaveNewProfileButton, UpdateProfileButton } from './UpdateProfileButton'
 import { SuggestedProfileSave } from './SuggestedProfileSave'
 
 const CARD =
@@ -41,7 +41,7 @@ export function EventPanel({ state }: { state: RoastState }) {
   const tp = findEvent(state.events, 'TP')
 
   return (
-    <div className={`${CARD} flex w-56 shrink-0 flex-col gap-1.5 overflow-auto p-3`}>
+    <div className={`${CARD} flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto p-3`}>
       <div className="flex items-center justify-between px-1">
         <span className="text-sm font-semibold text-zinc-300">Události</span>
         <button
@@ -228,7 +228,8 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
     if (!key) return roast.update({ reference: null })
     if (key === refKey) return
     const p = profiles?.find((x) => `profile:${x.id}` === key)
-    if (p) roast.update({ reference: profileChoice(p) })
+    // the profile's coffee becomes the coffee being roasted (can still be changed)
+    if (p) roast.update({ reference: profileChoice(p), ...(p.coffee ? { coffee: p.coffee, coffeeId: p.coffeeId } : {}) })
   }
   const start = async () => {
     // typed name not in the list yet → add it, so it is one click next time
@@ -295,11 +296,11 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
 
 // ── manual control log (gas / air / drum) ──────────────────
 
-export function ControlsBar({ state }: { state: RoastState }) {
+export function ControlsBar({ state, batchSec }: { state: RoastState; batchSec?: number | null }) {
   const enabled = state.status === 'roasting'
   const c = state.current
   return (
-    <div className={`${CARD} flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-2.5 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
+    <div className={`${CARD} flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-1.5 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
       <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-zinc-500">
         Ruční
         <br />
@@ -324,13 +325,7 @@ export function ControlsBar({ state }: { state: RoastState }) {
           ))}
         </select>
       </label>
-      {state.reference && (
-        <div className="min-w-0 max-w-56 leading-tight" title={state.reference.label}>
-          <div className="text-[11px] uppercase tracking-wide text-zinc-500">Reference</div>
-          <div className="truncate text-sm font-semibold text-zinc-200">{state.reference.label}</div>
-        </div>
-      )}
-      <DayTimer />
+      <DayTimer batchSec={batchSec ?? null} />
     </div>
   )
 }
@@ -350,8 +345,8 @@ function Presets(props: { label: string; unit: string; hint: string; kind: Contr
               key={v}
               disabled={!props.enabled}
               onClick={() => roast.setControl(props.kind, v)}
-              style={active ? { background: shade(props.kind, v), color: '#111318' } : undefined}
-              className={`min-w-10 rounded-xl px-2 py-1.5 text-sm font-semibold tabular-nums transition ${
+              style={active ? { background: shade(props.kind, v), color: textOn(props.kind, v) } : undefined}
+              className={`min-w-10 rounded-xl px-2 py-1 text-sm font-semibold tabular-nums transition ${
                 active ? 'shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_3px_8px_var(--sh)]' : 'text-zinc-300 hover:bg-white/5'
               }`}
             >
@@ -483,6 +478,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
       </div>
       <div className="flex gap-2">
         {state.source !== 'replay' && <UpdateProfileButton reference={state.reference} roastId={state.savedId} className="flex-1" />}
+        {state.source !== 'replay' && <SaveNewProfileButton roastId={state.savedId} coffee={state.coffee} className="flex-1" />}
       </div>
       </div>
     </div>

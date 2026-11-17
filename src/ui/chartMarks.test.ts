@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { controlSegments, formatControl, shade, visibleBadges } from './chartMarks'
+import { controlSegments, formatControl, shade, textOn, visibleBadges } from './chartMarks'
 
 describe('chart marks', () => {
   it('builds one segment per change, lasting until the next change of the same control', () => {
@@ -27,6 +27,8 @@ describe('chart marks', () => {
     expect(shade('gas', 2)).toMatch(/^hsla\(24,/)
     expect(shade('gas', 1)).toBe(shade('gas', 2)) // clamped to the range
     expect(formatControl('gas', 4.5)).toBe('4,5')
+    expect(textOn('gas', 2)).toBe('#111318') // light shade → dark text
+    expect(textOn('gas', 5.5)).toBe('#ffffff') // dark shade → white text
     expect(formatControl('air', 65)).toBe('65')
   })
 })

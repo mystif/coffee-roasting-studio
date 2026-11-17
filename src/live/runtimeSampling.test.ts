@@ -12,7 +12,7 @@ function response(bt: number, et: number): Uint8Array {
 }
 
 describe('live sampling', () => {
-  it('reads twice a second but records the curve once a second', async () => {
+  it('reads 4× a second but records the curve once a second', async () => {
     let polls = 0
     let ctrl: ReadableStreamDefaultController<Uint8Array> | null = null
     const port = Object.assign(new EventTarget(), {
@@ -37,7 +37,7 @@ describe('live sampling', () => {
     await new Promise((r) => setTimeout(r, 3100))
     await rt.disconnectRoaster()
     const n = rt.session.getSnapshot().t.length
-    expect(polls).toBeGreaterThanOrEqual(6) // ~7 polls in 3.1 s
+    expect(polls).toBeGreaterThanOrEqual(10) // ~12 polls in 3.1 s
     expect(n).toBeGreaterThanOrEqual(3)
     expect(n).toBeLessThanOrEqual(4) // 1 s cadence
     expect(rt.liveReading.get().bt).toBe(150 + polls) // big number = newest reading

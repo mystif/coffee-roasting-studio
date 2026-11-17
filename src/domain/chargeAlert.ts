@@ -31,3 +31,9 @@ export function beepStep(armed: boolean, level: ChargeAlertLevel): { beep: boole
   if (level === 'heating' || level === 'over' || level === 'idle') return { beep: false, armed: true }
   return { beep: false, armed } // "near" keeps the current state
 }
+
+/** Seconds until BT reaches the charge temperature at the current rate of rise (°C/min); null if not rising. */
+export function secondsToCharge(bt: number | null, target: number | null, rorPerMin: number | null): number | null {
+  if (bt === null || target === null || rorPerMin === null || bt >= target || rorPerMin < 0.3) return null
+  return ((target - bt) / rorPerMin) * 60
+}

@@ -41,4 +41,11 @@ export function shade(kind: ControlKind, value: number, alpha = 1): string {
   return `hsla(${HUE[kind]}, ${sat}%, ${light}%, ${alpha})`
 }
 
+/** Text colour that stays readable on the shade of a value: white on the dark (high) ones. */
+export function textOn(kind: ControlKind, value: number): string {
+  const [lo, hi] = RANGE[kind]
+  const f = Math.min(1, Math.max(0, (value - lo) / (hi - lo)))
+  return 78 - f * 38 < 58 ? '#ffffff' : '#111318'
+}
+
 export const formatControl = (kind: ControlKind, v: number) => (kind === 'gas' ? String(v).replace('.', ',') : String(Math.round(v)))

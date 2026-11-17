@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { beepStep, chargeAlertLevel, type ChargeAlertLevel } from '../domain/chargeAlert'
+import { beepStep, chargeAlertLevel, secondsToCharge, type ChargeAlertLevel } from '../domain/chargeAlert'
+import { fmtTime } from './LiveChart'
 import { roast } from '../live/runtime'
 import { askText } from './dialog'
 
@@ -46,7 +47,7 @@ const STYLE: Record<ChargeAlertLevel, string> = {
  * Preheat helper: shows how far BT is from the charge temperature, turns green and beeps when
  * it is reached. Target = manual value, otherwise the reference's CHARGE BT.
  */
-export function ChargeAlert({ bt, target, fromReference }: { bt: number | null; target: number | null; fromReference: boolean }) {
+export function ChargeAlert({ bt, target, fromReference, ror }: { bt: number | null; target: number | null; fromReference: boolean; ror: number | null }) {
   const level = chargeAlertLevel(bt, target)
   const armed = useRef(true)
   const [sound, setSound] = useState(soundOn)
@@ -89,16 +90,18 @@ export function ChargeAlert({ bt, target, fromReference }: { bt: number | null; 
     )
 
   const diff = bt === null ? null : bt - target
+  const eta = secondsToCharge(bt, target, ror)
+  const etaText = eta === null ? '' : ` · ~${fmtTime(eta)}`
   const text =
     level === 'ready'
       ? `VHOĎ KÁVU · BT ${bt!.toFixed(1)} °C`
       : level === 'over'
         ? `Nad teplotou vhozu o ${diff!.toFixed(1)} °C`
         : level === 'near'
-          ? `Blíží se teplota vhozu · zbývá ${(-diff!).toFixed(1)} °C`
+          ? `Blíží se teplota vhozu · zbývá ${(-diff!).toFixed(1)} °C${etaText}`
           : bt === null
             ? 'Čekám na data z pražičky'
-            : `Nahřívání · do vhozu zbývá ${(-diff!).toFixed(1)} °C`
+            : `Nahřívání · do vhozu zbývá ${(-diff!).toFixed(1)} °C${etaText}`
 
   return (
     <div className={`flex items-center gap-4 rounded-2xl px-4 py-1.5 text-sm ${STYLE[level]}`}>

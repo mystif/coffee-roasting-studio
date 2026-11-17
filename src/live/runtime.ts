@@ -7,8 +7,8 @@ import { RoastStore, useRoast } from './roastStore'
 import { createStore } from '../storage/store'
 
 export const SAMPLE_INTERVAL_MS = 1000 // curve / recording cadence (algorithms validated at this rate)
-/** The roaster is polled faster so the big BT/ET numbers follow its display almost 1:1 (S0: median latency 61 ms). */
-export const POLL_INTERVAL_MS = 500
+/** The roaster is polled 4× a second so the BT/ET numbers follow its display almost 1:1 (S0: median latency 61 ms, max ~200 ms). */
+export const POLL_INTERVAL_MS = 250
 
 /** Latest reading straight from the roaster (every poll) – for the big numbers only. */
 export const liveReading = createStore({ at: 0, bt: null as number | null, et: null as number | null })

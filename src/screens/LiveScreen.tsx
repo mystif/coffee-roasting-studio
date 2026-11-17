@@ -171,18 +171,9 @@ export function LiveScreen() {
           bt={bt}
           target={state.chargeTarget ?? refChargeBT}
           fromReference={state.chargeTarget === null && refChargeBT !== null}
+          ror={ror}
         />
       )}
-      <div className={`grid grid-cols-4 gap-3 ${stale ? 'opacity-50' : ''}`}>
-        <Readout label="BT" value={bt} unit="°C" color={CURVE_COLORS.bt} />
-        <Readout label="ET" value={et} unit="°C" color={CURVE_COLORS.et} />
-        <Readout label="RoR" value={ror} unit="°C/min" color={CURVE_COLORS.ror} />
-        <Readout
-          label={charge ? 'Čas pražení' : 'Čas (před Charge)'}
-          text={roastTime === null ? '—' : fmtTime(roastTime)}
-          color="var(--color-zinc-100)"
-        />
-      </div>
 
       {ref.missing && <p className="text-xs text-amber-300">Vybraná reference už neexistuje.</p>}
 
@@ -216,13 +207,21 @@ export function LiveScreen() {
           )}
           {state.status === 'finished' && <SummaryPanel state={state} />}
         </div>
-        <EventPanel state={state} />
+        <div className="flex w-64 shrink-0 flex-col gap-2">
+          <div className={`grid grid-cols-2 gap-2 ${stale ? 'opacity-50' : ''}`}>
+            <Readout label="BT" value={bt} unit="°C" color={CURVE_COLORS.bt} />
+            <Readout label="ET" value={et} unit="°C" color={CURVE_COLORS.et} />
+            <Readout label="RoR" value={ror} unit="°C/min" color={CURVE_COLORS.ror} />
+            <Readout label={charge ? 'Čas' : 'Před Charge'} text={roastTime === null ? '—' : fmtTime(roastTime)} color="var(--color-zinc-100)" />
+          </div>
+          <EventPanel state={state} />
+        </div>
       </div>
 
       {state.status === 'ready' ? (
         <StartBar state={state} canStart={snap.t.length > 0} />
       ) : (
-        <ControlsBar state={state} />
+        <ControlsBar state={state} batchSec={state.startT !== null && now !== null ? (drop?.t ?? now) - state.startT : null} />
       )}
     </div>
   )
@@ -268,14 +267,14 @@ function useKeyboardShortcuts() {
 function Readout(props: { label: string; value?: number | null; text?: string; unit?: string; color: string }) {
   const display = props.text ?? (props.value == null ? '—' : props.value.toFixed(1))
   return (
-    <div className="rounded-3xl bg-[var(--c-surface)] px-5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_10px_24px_var(--sh)]">
+    <div className="rounded-2xl bg-[var(--c-surface)] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_6px_16px_var(--sh)]">
       <div className="flex items-baseline justify-between">
-        <span className="text-sm font-semibold tracking-wide" style={{ color: props.color }}>
+        <span className="text-xs font-semibold tracking-wide" style={{ color: props.color }}>
           {props.label}
         </span>
-        {props.unit && <span className="text-xs text-zinc-500">{props.unit}</span>}
+        {props.unit && <span className="text-[10px] text-zinc-500">{props.unit}</span>}
       </div>
-      <div className="text-6xl font-semibold leading-tight tabular-nums tracking-tight" style={{ color: props.color }}>
+      <div className="text-[2.1rem] font-semibold leading-tight tabular-nums tracking-tight" style={{ color: props.color }}>
         {display}
       </div>
     </div>

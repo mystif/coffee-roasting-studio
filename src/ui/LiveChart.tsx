@@ -6,7 +6,7 @@ import { EVENT_SHORT, findEvent, type ControlChange, type ControlKind, type Roas
 import { PHASE_COLOR } from '../domain/phases'
 import type { ReferenceCurve } from '../domain/reference'
 import { cssVar, themeState } from './theme'
-import { controlSegments, formatControl, shade, visibleBadges, type Segment } from './chartMarks'
+import { controlSegments, formatControl, shade, textOn, visibleBadges, type Segment } from './chartMarks'
 
 /** For DOM elements (theme-aware CSS variables). The canvas reads the resolved values via cssVar. */
 export const CURVE_COLORS = { bt: 'var(--curve-bt)', et: 'var(--curve-et)', ror: 'var(--curve-ror)' }
@@ -440,7 +440,7 @@ function drawControlBadges(u: uPlot, o: ChartOverlay) {
         ctx.lineWidth = 1.5 * dpr
         ctx.strokeStyle = cssVar('--c-chart')
         ctx.stroke()
-        ctx.fillStyle = '#111318'
+        ctx.fillStyle = textOn(sgm.kind, sgm.value)
       }
       ctx.fillText(text, cx, cy + 0.5 * dpr)
     })
@@ -458,7 +458,7 @@ function drawControlBadges(u: uPlot, o: ChartOverlay) {
 
 // ── Dry End / FC start / Second Crack as points on the BT curve ──
 
-const BT_POINTS = ['DRY', 'FCs', 'SC'] as const
+const BT_POINTS = ['TP', 'DRY', 'FCs', 'SC'] as const
 
 function drawBtPoints(u: uPlot, o: ChartOverlay) {
   const ctx = u.ctx

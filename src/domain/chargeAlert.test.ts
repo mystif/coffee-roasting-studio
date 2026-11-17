@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { beepStep, chargeAlertLevel } from './chargeAlert'
+import { beepStep, chargeAlertLevel, secondsToCharge } from './chargeAlert'
 
 describe('charge alert', () => {
   it('classifies BT against the charge temperature', () => {
@@ -27,5 +27,13 @@ describe('charge alert', () => {
     expect(run([190, 204.5, 209, 206])).toEqual([1, 3])
     // cooled far below (heating) re-arms too
     expect(run([204.5, 195, 204.5])).toEqual([0, 2])
+  })
+})
+
+describe('time to charge', () => {
+  it('estimates from the preheat rate of rise', () => {
+    expect(secondsToCharge(195, 205, 6)).toBe(100) // 10 °C at 6 °C/min → 1:40
+    expect(secondsToCharge(205, 205, 6)).toBeNull()
+    expect(secondsToCharge(195, 205, 0.1)).toBeNull() // not really heating
   })
 })

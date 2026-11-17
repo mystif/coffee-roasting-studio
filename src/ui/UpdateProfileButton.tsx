@@ -29,3 +29,29 @@ export function UpdateProfileButton({ reference, roastId, className }: { referen
     </ClayButton>
   )
 }
+
+/** Save the finished roast as a brand-new profile (the reference, if any, stays untouched). */
+export function SaveNewProfileButton({ roastId, coffee, className }: { roastId: string | null; coffee: string; className?: string }) {
+  const [done, setDone] = useState<string | null>(null)
+  if (!roastId) return null
+  const run = async () => {
+    const r = await db.roasts.get(roastId)
+    if (!r) return
+    const { createProfileFromRoast } = await import('../storage/profiles')
+    const { fmtDate } = await import('../storage/roastQueries')
+    const { findEvent } = await import('../domain/events')
+    if (!findEvent(r.events, 'CHARGE')) return void showAlert('Nelze uložit jako profil', 'Pražení nemá Charge, křivky se nedají zarovnat.')
+    const { askText } = await import('./dialog')
+    const name = await askText('Uložit jako nový profil', `${coffee || r.coffee || 'Profil'} · ${fmtDate(r.roastDate)}`, {
+      message: 'Vznikne nový referenční profil z tohoto pražení. Stávající profily zůstanou beze změny.',
+    })
+    if (name === null) return
+    const p = await createProfileFromRoast(r, name)
+    setDone(p.name)
+  }
+  return (
+    <ClayButton onClick={() => void run()} disabled={!!done} className={className} title="Vytvoří nový profil z tohoto pražení">
+      {done ? '✓ Uloženo jako nový profil' : 'Uložit jako nový profil'}
+    </ClayButton>
+  )
+}
