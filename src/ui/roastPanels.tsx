@@ -16,6 +16,7 @@ import { ClayButton } from './clay'
 import { fmtTime } from './LiveChart'
 import { SaveStatus } from './storageUi'
 import { DayTimer } from './DayTimer'
+import { UpdateProfileButton } from './UpdateProfileButton'
 
 const CARD =
   'rounded-3xl bg-[var(--c-surface)] shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_10px_24px_var(--sh)]'
@@ -461,6 +462,9 @@ export function SummaryPanel({ state }: { state: RoastState }) {
         {state.savedId && (
           <ClayButton onClick={() => (location.hash = `#/historie/${state.savedId}`)}>Detail v historii</ClayButton>
         )}
+      </div>
+      <div className="flex gap-2">
+        {state.source !== 'replay' && <UpdateProfileButton reference={state.reference} roastId={state.savedId} className="flex-1" />}
       </div>
       </div>
     </div>

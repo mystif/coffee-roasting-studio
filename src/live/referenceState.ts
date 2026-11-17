@@ -27,3 +27,10 @@ async function sync() {
 
 roast.subscribe(() => void sync())
 void sync()
+
+/** Reloads the current reference (e.g. after its profile was updated). */
+export function refreshReference() {
+  referenceState.set({ choice: null, curve: null, missing: false })
+  loading = ''
+  void sync()
+}

@@ -66,3 +66,26 @@ export async function createProfileFromSuggestion(
   await db.profiles.add(p)
   return p
 }
+
+/**
+ * Overwrites a profile with a roast (curve, events, gas/air plan, targets) – used when roasting
+ * along a profile and the result is the new reference. Name, coffee and notes are kept;
+ * a line about the update is appended to the notes.
+ */
+export async function updateProfileFromRoast(profileId: string, r: RoastRecord): Promise<boolean> {
+  const p = await db.profiles.get(profileId)
+  if (!p || !findEvent(r.events, 'CHARGE')) return false
+  const charge = findEvent(r.events, 'CHARGE')!
+  const drop = findEvent(r.events, 'DROP')
+  const line = `Aktualizováno pražením z ${fmtDate(r.roastDate)}.`
+  await db.profiles.update(profileId, {
+    samples: r.samples,
+    events: r.events,
+    controls: r.controls,
+    fromRoastId: r.id,
+    targetDropBT: drop?.bt ?? p.targetDropBT,
+    targetTime: drop ? Math.round(drop.t - charge.t) : p.targetTime,
+    notes: [p.notes, line].filter(Boolean).join('\n'),
+  })
+  return true
+}

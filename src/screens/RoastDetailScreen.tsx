@@ -20,6 +20,7 @@ import { ClayButton, Panel } from '../ui/clay'
 import { LiveChart, fmtTime, type ChartOverlay } from '../ui/LiveChart'
 import { Page, go, inputCls } from '../ui/nav'
 import { parseKg } from '../ui/roastPanels'
+import { UpdateProfileButton } from '../ui/UpdateProfileButton'
 
 export function RoastDetailScreen({ id }: { id: string }) {
   const r = useLiveQuery(() => db.roasts.get(id).then((x) => x ?? null), [id])
@@ -106,6 +107,7 @@ function Detail({ r }: { r: RoastRecord }) {
       title={`${r.coffee || 'Bez názvu'} · ${fmtDate(r.roastDate)}`}
       actions={
         <>
+          <UpdateProfileButton reference={r.reference} roastId={r.id} />
           <ClayButton onClick={() => void saveProfile()} title="Uloží křivku, události a plán plynu/vzduchu jako profil">
             Uložit jako profil
           </ClayButton>
