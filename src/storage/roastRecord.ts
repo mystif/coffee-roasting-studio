@@ -60,7 +60,7 @@ export function buildRecord(snap: LiveSnapshot, roast: RoastState, id: string, n
     roastedWeightG: roast.roastedWeightG,
     lossPct: lossPct(roast.greenWeightG, roast.roastedWeightG),
     notes: roast.notes,
-    rating: null,
+    rating: roast.rating ?? null,
     source: 'live',
     samples: { t, bt: snap.bt.slice(i0), et: snap.et.slice(i0) },
     sampleIntervalMs: snap.intervalMs,

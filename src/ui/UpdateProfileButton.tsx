@@ -1,3 +1,4 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { refreshReference } from '../live/referenceState'
 import type { RefChoice } from '../storage/db'
@@ -9,7 +10,8 @@ import { askConfirm, showAlert } from './dialog'
 /** "Roasted along a profile and liked it" → overwrite that profile with this roast (no new profile). */
 export function UpdateProfileButton({ reference, roastId, className }: { reference: RefChoice | null | undefined; roastId: string | null; className?: string }) {
   const [done, setDone] = useState(false)
-  if (reference?.kind !== 'profile' || !roastId) return null
+  const isSuggestion = useLiveQuery(async () => (reference?.kind === 'profile' ? !!(await db.profiles.get(reference.id))?.suggestion : false), [reference?.id])
+  if (reference?.kind !== 'profile' || !roastId || isSuggestion) return null
   const run = async () => {
     const ok = await askConfirm(`Aktualizovat profil „${reference.label}“?`, {
       message: 'Křivka, události a plán plynu/vzduchu profilu se nahradí tímto pražením. Název a poznámky profilu zůstanou. Nevytvoří se nový profil.',

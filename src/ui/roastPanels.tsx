@@ -17,6 +17,7 @@ import { fmtTime } from './LiveChart'
 import { SaveStatus } from './storageUi'
 import { DayTimer } from './DayTimer'
 import { UpdateProfileButton } from './UpdateProfileButton'
+import { SuggestedProfileSave } from './SuggestedProfileSave'
 
 const CARD =
   'rounded-3xl bg-[var(--c-surface)] shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_10px_24px_var(--sh)]'
@@ -446,15 +447,32 @@ export function SummaryPanel({ state }: { state: RoastState }) {
           />
         </label>
       </div>
+      <div className="flex flex-col gap-1 text-xs text-zinc-400">
+        Hodnocení
+        <div className="flex gap-1">
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              onClick={() => roast.update({ rating: state.rating === n ? null : n })}
+              className={`h-8 flex-1 rounded-lg text-sm font-semibold ${
+                state.rating !== null && n <= state.rating ? 'bg-amber-400 text-amber-950' : 'bg-[var(--c-bg)] text-zinc-400 hover:text-zinc-100'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
       <label className="flex flex-col gap-1 text-xs text-zinc-400">
         Poznámky
         <textarea
           value={state.notes}
           onChange={(e) => roast.update({ notes: e.target.value })}
-          rows={6}
+          rows={3}
           className="rounded-xl bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
         />
       </label>
+      {state.source !== 'replay' && <SuggestedProfileSave state={state} />}
       <div className="mt-auto flex gap-2">
         <ClayButton variant="primary" onClick={() => roast.newRoast()} className="flex-1">
           Nové pražení

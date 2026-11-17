@@ -1,7 +1,8 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import { db } from './db'
-import { createProfileFromRoast, loadReference, updateProfileFromRoast } from './profiles'
+import { createProfileFromRoast, createProfileFromSuggestion, loadReference, saveRoastAsCoffeeProfile, updateProfileFromRoast } from './profiles'
+import { suggestProfile } from '../domain/suggest'
 import type { RoastRecord } from './roastRecord'
 
 const ev = (type: 'CHARGE' | 'FCs' | 'DROP', t: number, bt: number) => ({ id: type + t, type, t, bt, et: null })
@@ -29,5 +30,25 @@ describe('updating a profile from a roast', () => {
     const curve = (await loadReference({ kind: 'profile', id: p.id, label: q.name }))!
     expect(curve.events.find((e) => e.type === 'DROP')!.t).toBe(715) // relative to CHARGE
     expect(await db.profiles.count()).toBe(1) // not a new profile
+  })
+})
+
+describe('roasting along a suggested profile', () => {
+  it('replaces the suggestion with the real roast, or keeps it and adds a new profile', async () => {
+    await db.profiles.clear()
+    const coffee = { id: 'c1', name: 'Kenya AA' }
+    const sug = await createProfileFromSuggestion(coffee, suggestProfile({ name: 'Kenya AA', country: 'Keňa', process: 'Washed (mytá)', variety: '' }, 'filter'))
+    expect(sug.suggestion).toEqual({ style: 'filter' })
+
+    const replaced = (await saveRoastAsCoffeeProfile(roastRec('r9', 0, 201), { name: 'Kenya AA · filtr', notes: 'citrus, čajové', replaceId: sug.id }))!
+    expect(replaced.id).toBe(sug.id)
+    expect(replaced).toMatchObject({ name: 'Kenya AA · filtr', fromRoastId: 'r9', targetDropBT: 201 })
+    expect(replaced.suggestion).toBeUndefined()
+    expect(replaced.notes.split('\n')[0]).toBe('citrus, čajové')
+    expect(await db.profiles.count()).toBe(1)
+
+    const added = (await saveRoastAsCoffeeProfile(roastRec('r10', 0, 203), { name: 'Kenya AA · v2', notes: '', replaceId: null }))!
+    expect(added.id).not.toBe(sug.id)
+    expect(await db.profiles.count()).toBe(2)
   })
 })

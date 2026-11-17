@@ -17,6 +17,8 @@ export interface RoastState {
   chargeTarget: number | null
   greenWeightG: number | null
   roastedWeightG: number | null
+  /** 1–10 after the roast */
+  rating: number | null
   notes: string
   /** session time when Start was pressed */
   startT: number | null
@@ -50,6 +52,7 @@ const initial = (): RoastState => ({
   chargeTarget: null,
   greenWeightG: null,
   roastedWeightG: null,
+  rating: null,
   notes: '',
   startT: null,
   events: [],
@@ -160,7 +163,7 @@ export class RoastStore {
     this.set({ status: 'finished' })
   }
 
-  update(patch: Partial<Pick<RoastState, 'roastedWeightG' | 'notes' | 'coffee' | 'coffeeId' | 'greenWeightG' | 'savedId' | 'reference' | 'chargeTarget'>>) {
+  update(patch: Partial<Pick<RoastState, 'roastedWeightG' | 'notes' | 'rating' | 'coffee' | 'coffeeId' | 'greenWeightG' | 'savedId' | 'reference' | 'chargeTarget'>>) {
     this.set(patch)
   }
 

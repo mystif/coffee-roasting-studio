@@ -62,6 +62,7 @@ export async function createProfileFromSuggestion(
     samples: s.samples,
     events: s.events,
     controls: s.plan,
+    suggestion: { style: s.style },
   }
   await db.profiles.add(p)
   return p
@@ -88,4 +89,27 @@ export async function updateProfileFromRoast(profileId: string, r: RoastRecord):
     notes: [p.notes, line].filter(Boolean).join('\n'),
   })
   return true
+}
+
+/**
+ * After roasting along a suggested profile: keep the real roast as the coffee's profile.
+ * replace = overwrite the suggestion (it becomes a normal profile), otherwise a new profile is added.
+ */
+export async function saveRoastAsCoffeeProfile(
+  r: RoastRecord,
+  opts: { name: string; notes: string; replaceId: string | null },
+): Promise<Profile | undefined> {
+  const name = opts.name.trim() || `${r.coffee || 'Profil'} · ${fmtDate(r.roastDate)}`
+  if (opts.replaceId && (await updateProfileFromRoast(opts.replaceId, r))) {
+    const old = await db.profiles.get(opts.replaceId)
+    await db.profiles.update(opts.replaceId, {
+      name,
+      suggestion: undefined,
+      notes: [opts.notes.trim(), old?.notes].filter(Boolean).join('\n'),
+    })
+    return db.profiles.get(opts.replaceId)
+  }
+  const p = await createProfileFromRoast(r, name)
+  if (opts.notes.trim()) await db.profiles.update(p.id, { notes: opts.notes.trim() })
+  return db.profiles.get(p.id)
 }
