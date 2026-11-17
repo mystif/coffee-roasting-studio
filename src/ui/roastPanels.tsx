@@ -13,6 +13,7 @@ import { roast } from '../live/runtime'
 import { ClayButton } from './clay'
 import { fmtTime } from './LiveChart'
 import { SaveStatus } from './storageUi'
+import { DayTimer } from './DayTimer'
 
 const CARD =
   'rounded-3xl bg-[var(--c-surface)] shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_10px_24px_var(--sh)]'
@@ -275,6 +276,7 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
       <ClayButton variant="primary" onClick={() => void start()} disabled={!canStart} className="px-8 py-3 text-base">
         Start Roasting
       </ClayButton>
+      <DayTimer />
     </div>
   )
 }
@@ -285,7 +287,7 @@ export function ControlsBar({ state }: { state: RoastState }) {
   const enabled = state.status === 'roasting'
   const c = state.current
   return (
-    <div className={`${CARD} flex items-center gap-5 px-5 py-2.5 ${enabled ? '' : 'opacity-50'}`}>
+    <div className={`${CARD} flex items-center gap-5 px-5 py-2.5 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
       <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-zinc-500">
         Ruční
         <br />
@@ -294,6 +296,7 @@ export function ControlsBar({ state }: { state: RoastState }) {
       <Presets label="Plyn" unit="kPa" hint="↑ ↓" kind="gas" values={GAS_PRESETS} current={c.gas} enabled={enabled} />
       <Presets label="Vzduch (Hot Air)" unit="%" hint="1–5" kind="air" values={AIR_PRESETS} current={c.air} enabled={enabled} />
       <Stepper label="Buben" unit="%" value={c.drum} kind="drum" enabled={enabled} hint="[ ]" />
+      <DayTimer />
     </div>
   )
 }

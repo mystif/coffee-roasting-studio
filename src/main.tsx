@@ -8,6 +8,7 @@ import { initPwa } from './pwa'
 import './live/referenceState'
 
 void initPersistence()
+void import('./live/dayState').then((m) => m.initDay())
 initPwa()
 
 createRoot(document.getElementById('root')!).render(
