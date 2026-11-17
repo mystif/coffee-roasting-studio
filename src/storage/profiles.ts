@@ -43,3 +43,26 @@ export async function loadReference(choice: RefChoice | null): Promise<Reference
 
 export const profileChoice = (p: Profile): RefChoice => ({ kind: 'profile', id: p.id, label: p.name })
 export const roastChoice = (r: RoastRecord): RefChoice => ({ kind: 'roast', id: r.id, label: `${r.coffee || 'Pražení'} · ${fmtDate(r.roastDate)}` })
+
+/** Saves a suggested starting profile (synthetic curve + gas/air plan) for a coffee. */
+export async function createProfileFromSuggestion(
+  coffee: { id: string; name: string },
+  s: import('../domain/suggest').Suggestion,
+): Promise<Profile> {
+  const p: Profile = {
+    id: crypto.randomUUID(),
+    name: `Návrh · ${coffee.name} · ${s.style === 'espresso' ? 'espresso' : 'filtr'}`,
+    coffee: coffee.name,
+    coffeeId: coffee.id,
+    fromRoastId: null,
+    createdAt: new Date().toISOString(),
+    notes: ['Navržený výchozí profil pro první pražení (3 kg).', ...s.reasons].join('\n'),
+    targetDropBT: s.drop.bt,
+    targetTime: s.drop.t,
+    samples: s.samples,
+    events: s.events,
+    controls: s.plan,
+  }
+  await db.profiles.add(p)
+  return p
+}

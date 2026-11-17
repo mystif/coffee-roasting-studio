@@ -5,6 +5,7 @@ import { addCoffee, deleteCoffee, emptyCoffee, updateCoffee, type CoffeeInput } 
 import { db } from '../storage/db'
 import { ClayButton, Panel } from '../ui/clay'
 import { Page, inputCls } from '../ui/nav'
+import { SuggestPanel } from '../ui/SuggestPanel'
 
 const FIELDS: [keyof CoffeeInput, string, string][] = [
   ['name', 'Název', 'např. Colombia Huila'],
@@ -23,6 +24,7 @@ export function CoffeesScreen() {
     return m
   }, [])
   const [editing, setEditing] = useState<string | 'new' | null>(null)
+  const [suggest, setSuggest] = useState<string | null>(null)
 
   return (
     <Page
@@ -34,7 +36,13 @@ export function CoffeesScreen() {
       }
     >
       <div className="grid max-w-5xl gap-3">
-        {editing === 'new' && <CoffeeForm initial={emptyCoffee()} onDone={() => setEditing(null)} onSave={(c) => addCoffee(c)} />}
+        {editing === 'new' && (
+          <CoffeeForm
+            initial={emptyCoffee()}
+            onDone={() => setEditing(null)}
+            onSave={async (c) => setSuggest((await addCoffee(c)).id)}
+          />
+        )}
         {coffees?.length === 0 && editing !== 'new' && (
           <p className="text-zinc-400">Zatím žádné kávy. Přidej první – pak ji vybereš jedním kliknutím při Start Roasting.</p>
         )}
@@ -53,7 +61,8 @@ export function CoffeesScreen() {
               }}
             />
           ) : (
-            <Panel key={c.id} className="flex items-center gap-4 !py-3">
+            <Panel key={c.id} className="grid gap-3 !py-3">
+              <div className="flex items-center gap-4">
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{c.name}</p>
                 <p className="truncate text-sm text-zinc-400">
@@ -63,7 +72,12 @@ export function CoffeesScreen() {
               <a href={`#/historie?kava=${c.id}`} className="text-sm text-zinc-400 hover:text-zinc-100">
                 {counts?.get(c.id) ?? 0} pražení
               </a>
+              <ClayButton onClick={() => setSuggest(suggest === c.id ? null : c.id)} title="Návrh profilu pro první pražení (espresso i filtr, 3 kg)">
+                {suggest === c.id ? 'Skrýt návrh' : 'Navrhnout profil'}
+              </ClayButton>
               <ClayButton onClick={() => setEditing(c.id)}>Upravit</ClayButton>
+              </div>
+              {suggest === c.id && <SuggestPanel coffee={c} />}
             </Panel>
           ),
         )}
