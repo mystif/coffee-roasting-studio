@@ -157,10 +157,11 @@ export function LiveScreen() {
         <ReferenceStrip
           curve={ref.curve}
           roastTime={charge && now !== null ? (drop?.t ?? now) - charge.t : null}
-          bt={bt}
-          ror={ror}
+          bt={drop ? drop.bt : bt} // after DROP the comparison stays at the DROP values
+          ror={drop ? (snap.ror[snap.t.findIndex((x) => x >= drop.t)] ?? null) : ror}
           afterTP={!!findEvent(state.events, 'TP')}
           charged={!!charge}
+          done={state.events.map((e) => e.type)}
         />
       )}
       {ref.missing && <p className="text-xs text-amber-300">Vybraná reference už neexistuje.</p>}

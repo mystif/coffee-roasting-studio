@@ -1,7 +1,7 @@
 // Reference (background) curve: a previous roast or profile aligned at CHARGE,
 // plus the live deviation from it.
 import { computeRoR } from './ror'
-import { findEvent, type ControlChange, type RoastEvent } from './events'
+import { findEvent, type ControlChange, type EventType, type RoastEvent } from './events'
 
 type Num = number | null
 
@@ -90,10 +90,11 @@ export function deviation(ref: ReferenceCurve, roastTime: number, bt: number | n
   }
 }
 
-/** Next reference event / control change after `roastTime` – the plan to follow. */
-export function upcoming(ref: ReferenceCurve, roastTime: number) {
+/** Next reference event / control change after `roastTime` – the plan to follow.
+ *  Events already marked in the live roast (`done`) are skipped, even if the reference reaches them later. */
+export function upcoming(ref: ReferenceCurve, roastTime: number, done: EventType[] = []) {
   return {
-    event: ref.events.find((e) => e.t > roastTime && e.type !== 'TP' && e.type !== 'CHARGE') ?? null,
+    event: ref.events.find((e) => e.t > roastTime && e.type !== 'TP' && e.type !== 'CHARGE' && !done.includes(e.type)) ?? null,
     control: ref.controls.find((c) => c.t > roastTime) ?? null,
   }
 }

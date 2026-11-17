@@ -475,6 +475,8 @@ export function ReferenceStrip(props: {
   ror: number | null
   afterTP: boolean
   charged: boolean
+  /** event types already marked in this roast */
+  done: EventType[]
 }) {
   const { curve, roastTime } = props
   if (!props.charged || roastTime === null) {
@@ -498,7 +500,7 @@ export function ReferenceStrip(props: {
     )
   }
   const d = deviation(curve, roastTime, props.bt, props.ror, props.afterTP)
-  const next = upcoming(curve, roastTime)
+  const next = upcoming(curve, roastTime, props.done)
   const sign = (x: number, digits = 1) => `${x > 0 ? '+' : x < 0 ? '−' : '±'}${Math.abs(x).toFixed(digits)}`
   const tone = (x: number | null, warn: number) => (x === null ? 'text-zinc-500' : Math.abs(x) >= warn ? 'text-amber-300' : 'text-emerald-300')
   const ctrlName = { gas: 'plyn', air: 'vzduch', drum: 'buben' } as const

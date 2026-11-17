@@ -286,15 +286,7 @@ function drawReference(u: uPlot, o: ChartOverlay) {
   line(ref.bt, 'temp', cssVar('--chart-ref-bt'), 2)
   line(ref.ror, 'ror', cssVar('--chart-ref-ror'), 1.5)
   ctx.setLineDash([])
-  ctx.font = `${500} ${10 * dpr}px Inter, system-ui, sans-serif`
-  ctx.textBaseline = 'bottom'
-  for (const e of ref.events) {
-    if (e.type === 'CHARGE' || e.type === 'TP') continue
-    const x = u.valToPos(zero + e.t, 'x', true)
-    ctx.fillStyle = cssVar('--chart-ref-text')
-    ctx.fillRect(x, top + height - 34 * dpr - 52 * dpr, dpr, 10 * dpr)
-    ctx.fillText(`ref ${EVENT_SHORT[e.type]}`, x + 3 * dpr, top + height - 76 * dpr)
-  }
+  // reference events are labelled on the reference BT curve (drawRefPoints)
   ctx.restore()
 }
 

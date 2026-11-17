@@ -45,5 +45,7 @@ describe('reference', () => {
     const u = upcoming(ref, 200)
     expect(u.event?.type).toBe('FCs')
     expect(u.control).toMatchObject({ t: 300, value: 4 })
+    // FC already marked live (earlier than in the reference) → no longer announced
+    expect(upcoming(ref, 450, ['FCs']).event).toBeNull()
   })
 })
