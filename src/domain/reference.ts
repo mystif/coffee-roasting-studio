@@ -99,3 +99,10 @@ export function upcoming(ref: ReferenceCurve, roastTime: number) {
 }
 
 const round2 = (x: number) => Math.round(x * 100) / 100
+
+/** First recorded value of each control in the reference – how to set the roaster at the start. */
+export function startSettings(ref: ReferenceCurve): Partial<Record<ControlChange['kind'], number>> {
+  const out: Partial<Record<ControlChange['kind'], number>> = {}
+  for (const c of [...ref.controls].sort((a, b) => a.t - b.t)) if (out[c.kind] === undefined) out[c.kind] = c.value
+  return out
+}

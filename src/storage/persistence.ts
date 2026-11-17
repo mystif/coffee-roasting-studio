@@ -4,7 +4,7 @@
 import { roast, session } from '../live/runtime'
 import type { RoastState } from '../live/roastStore'
 import { flushBackups, initBackup } from './backup'
-import { db } from './db'
+import { db, getSetting, setSetting } from './db'
 import { buildRecord, lossPct } from './roastRecord'
 import { createStore } from './store'
 
@@ -40,9 +40,24 @@ export async function initPersistence() {
   await initBackup().catch(report)
 }
 
+/** Coffee, weight, reference and control positions chosen for the next roast survive a reload. */
+type Prep = Pick<RoastState, 'coffee' | 'coffeeId' | 'greenWeightG' | 'reference' | 'current'>
+let prepTimer: ReturnType<typeof setTimeout> | null = null
+function savePrep() {
+  if (prepTimer) clearTimeout(prepTimer)
+  prepTimer = setTimeout(() => {
+    const { coffee, coffeeId, greenWeightG, reference, current } = roast.getSnapshot()
+    void setSetting('prep', { coffee, coffeeId, greenWeightG, reference, current } satisfies Prep)
+  }, 500)
+}
+
 async function restoreDraft() {
   const d = await db.drafts.get('current')
-  if (!d) return
+  if (!d) {
+    const prep = await getSetting<Prep>('prep')
+    if (prep && roast.getSnapshot().status === 'ready') roast.prepare(prep)
+    return
+  }
   if (d.roast.status === 'roasting' && d.session.source === 'roaster') {
     session.restore(d.session)
     roast.restore(d.roast)
@@ -68,6 +83,7 @@ function onRoastChange() {
   const cur = roast.getSnapshot()
   const before = prev
   prev = cur
+  if (cur.status === 'ready') savePrep()
   const live = session.getSnapshot().source === 'roaster' || cur.source === 'roaster'
   if (!live) return
 

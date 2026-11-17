@@ -5,7 +5,7 @@ import { db } from '../storage/db'
 import { profileChoice } from '../storage/profiles'
 import { EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR, PHASE_TEXT, PHASE_LABEL, currentPhase, phaseStats } from '../domain/phases'
-import { deviation, upcoming } from '../domain/reference'
+import { deviation, startSettings, upcoming } from '../domain/reference'
 import { AIR_PRESETS, CONTROL_LIMITS, GAS_PRESETS, type RoastState } from '../live/roastStore'
 import { formatControl, shade } from './chartMarks'
 import type { ControlKind } from '../domain/events'
@@ -477,12 +477,26 @@ export function ReferenceStrip(props: {
   charged: boolean
 }) {
   const { curve, roastTime } = props
-  if (!props.charged || roastTime === null)
+  if (!props.charged || roastTime === null) {
+    const st = startSettings(curve)
+    const parts = [
+      st.gas !== undefined && `plyn ${formatControl('gas', st.gas)} kPa`,
+      st.air !== undefined && `vzduch ${st.air} %`,
+      st.drum !== undefined && `buben ${st.drum} %`,
+    ].filter(Boolean)
     return (
-      <div className={`${CARD} px-4 py-2 text-sm text-zinc-400`}>
-        Reference <b className="text-zinc-200">{curve.label}</b> – v grafu jako náhled, porovnávání (Δ BT, Δ čas, plán plynu) začne po Charge.
+      <div className={`${CARD} flex items-center gap-4 px-4 py-2 text-sm text-zinc-400`}>
+        <span className="min-w-0 truncate">
+          Reference <b className="text-zinc-200">{curve.label}</b> – náhled v grafu, porovnávání začne po Charge.
+        </span>
+        {parts.length > 0 && (
+          <span className="ml-auto whitespace-nowrap rounded-xl bg-[var(--c-bg)] px-3 py-1 text-zinc-300">
+            Na začátek nastav: <b className="text-zinc-100">{parts.join(' · ')}</b>
+          </span>
+        )}
       </div>
     )
+  }
   const d = deviation(curve, roastTime, props.bt, props.ror, props.afterTP)
   const next = upcoming(curve, roastTime)
   const sign = (x: number, digits = 1) => `${x > 0 ? '+' : x < 0 ? '−' : '±'}${Math.abs(x).toFixed(digits)}`

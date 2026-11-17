@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import type { LiveSnapshot } from '../live/LiveSession'
-import { EVENT_SHORT, findEvent, type ControlChange, type RoastEvent } from '../domain/events'
+import { EVENT_SHORT, findEvent, type ControlChange, type ControlKind, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR } from '../domain/phases'
 import type { ReferenceCurve } from '../domain/reference'
 import { cssVar, themeState } from './theme'
-import { controlSegments, formatControl, shade, visibleBadges } from './chartMarks'
+import { controlSegments, formatControl, shade, visibleBadges, type Segment } from './chartMarks'
 
 /** For DOM elements (theme-aware CSS variables). The canvas reads the resolved values via cssVar. */
 export const CURVE_COLORS = { bt: 'var(--curve-bt)', et: 'var(--curve-et)', ror: 'var(--curve-ror)' }
@@ -91,7 +91,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
         },
         temp: {
           range: (_u, min, max) => [
-            Math.min(30, Number.isFinite(min) ? Math.floor(min / 10) * 10 : 30), // 30 °C: room for the gas/air bars
+            Math.min(overlayRef.current.reference ? 0 : 30, Number.isFinite(min) ? Math.floor(min / 10) * 10 : 30), // room for the gas/air bars (+ plan lanes)
             Math.max(250, Number.isFinite(max) ? Math.ceil(max / 10) * 10 + 10 : 250),
           ],
         },
@@ -298,67 +298,127 @@ function drawReference(u: uPlot, o: ChartOverlay) {
 }
 
 // ── manual control log: one bar per control, shade = value, value in a circle ──
+// Lanes from the bottom: your gas, your air, (drum if it changed), then the reference plan
+// ("plán") for gas/air/drum – so you can see what to set and when.
 
-const ROWS = { gas: 0, air: 1, drum: 2 } as const
-const ROW_PITCH = 24 // px between rows (badge Ø 20 px)
+const LANE_PITCH = 22 // px (badge Ø 20 px)
 const BAR_H = 10
 const BADGE_R = 10
+const PLAN_BAR_H = 6
+const PLAN_BADGE_R = 8
 
-const rowY = (u: uPlot, row: number) => u.bbox.top + u.bbox.height - (16 + row * ROW_PITCH) * devicePixelRatio
-
-function controlEnd(o: ChartOverlay) {
-  return findEvent(o.events, 'DROP')?.t ?? o.now ?? 0
+interface Lane {
+  kind: ControlKind
+  plan: boolean
+  segs: Segment[]
 }
 
+function lanes(o: ChartOverlay): Lane[] {
+  const out: Lane[] = []
+  const live = controlSegments(o.controls, findEvent(o.events, 'DROP')?.t ?? o.now ?? 0)
+  for (const kind of ['gas', 'air', 'drum'] as ControlKind[]) {
+    const segs = live.filter((x) => x.kind === kind)
+    // drum only matters if it was changed during the roast
+    if (segs.length && (kind !== 'drum' || new Set(segs.map((x) => x.value)).size > 1)) out.push({ kind, plan: false, segs })
+  }
+  const zero = zeroT(o)
+  const ref = o.reference
+  if (ref && zero !== null && ref.controls.length) {
+    const end = zero + (findEvent(ref.events, 'DROP')?.t ?? ref.t[ref.t.length - 1] ?? 0)
+    const plan = controlSegments(
+      ref.controls.map((c) => ({ ...c, t: zero + c.t })),
+      end,
+    )
+    for (const kind of ['gas', 'air', 'drum'] as ControlKind[]) {
+      const segs = plan.filter((x) => x.kind === kind)
+      if (segs.length && (kind !== 'drum' || new Set(segs.map((x) => x.value)).size > 1)) out.push({ kind, plan: true, segs })
+    }
+  }
+  return out
+}
+
+const laneY = (u: uPlot, i: number) => u.bbox.top + u.bbox.height - (16 + i * LANE_PITCH) * devicePixelRatio
+
 function drawControlBars(u: uPlot, o: ChartOverlay) {
-  if (!o.controls.length) return
+  const ls = lanes(o)
+  if (!ls.length) return
   const ctx = u.ctx
   const dpr = devicePixelRatio
   const { left, width } = u.bbox
   ctx.save()
-  for (const sgm of controlSegments(o.controls, controlEnd(o))) {
-    const x0 = Math.max(left, u.valToPos(sgm.from, 'x', true))
-    const x1 = Math.min(left + width, u.valToPos(sgm.to, 'x', true))
-    if (x1 <= x0) continue
-    const y = rowY(u, ROWS[sgm.kind]) - (BAR_H / 2) * dpr
-    ctx.fillStyle = shade(sgm.kind, sgm.value, 0.55)
-    ctx.beginPath()
-    ctx.roundRect(x0, y, x1 - x0, BAR_H * dpr, 3 * dpr)
-    ctx.fill()
-  }
+  ls.forEach((lane, i) => {
+    const h = (lane.plan ? PLAN_BAR_H : BAR_H) * dpr
+    for (const sgm of lane.segs) {
+      const x0 = Math.max(left, u.valToPos(sgm.from, 'x', true))
+      const x1 = Math.min(left + width, u.valToPos(sgm.to, 'x', true))
+      if (x1 <= x0) continue
+      const y = laneY(u, i) - h / 2
+      ctx.fillStyle = shade(sgm.kind, sgm.value, lane.plan ? 0.3 : 0.55)
+      ctx.beginPath()
+      ctx.roundRect(x0, y, x1 - x0, h, 3 * dpr)
+      ctx.fill()
+      if (lane.plan) {
+        ctx.setLineDash([3 * dpr, 3 * dpr])
+        ctx.strokeStyle = shade(sgm.kind, sgm.value, 0.8)
+        ctx.lineWidth = dpr
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
+    }
+  })
   ctx.restore()
 }
 
 function drawControlBadges(u: uPlot, o: ChartOverlay) {
-  if (!o.controls.length) return
+  const ls = lanes(o)
+  if (!ls.length) return
   const ctx = u.ctx
   const dpr = devicePixelRatio
   const { left, width } = u.bbox
-  const segs = controlSegments(o.controls, controlEnd(o))
   ctx.save()
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  for (const kind of ['gas', 'air', 'drum'] as const) {
-    const list = segs.filter((x) => x.kind === kind)
-    const xs = list.map((x) => Math.max(left + BADGE_R * dpr, u.valToPos(x.from, 'x', true) + BADGE_R * dpr))
-    const show = visibleBadges(xs, (BADGE_R * 2 + 2) * dpr)
-    list.forEach((sgm, i) => {
+  ls.forEach((lane, li) => {
+    const r = (lane.plan ? PLAN_BADGE_R : BADGE_R) * dpr
+    const xs = lane.segs.map((x) => Math.max(left + r, u.valToPos(x.from, 'x', true) + r))
+    const show = visibleBadges(xs, 2 * r + 2 * dpr)
+    const cy = laneY(u, li)
+    lane.segs.forEach((sgm, i) => {
       const cx = xs[i]
       if (!show[i] || cx > left + width) return
-      const cy = rowY(u, ROWS[kind])
-      const text = formatControl(kind, sgm.value)
-      ctx.font = `700 ${(text.length > 2 ? 9 : 10.5) * dpr}px Inter, system-ui, sans-serif`
+      const text = formatControl(sgm.kind, sgm.value)
+      ctx.font = `700 ${(lane.plan ? (text.length > 2 ? 8 : 9) : text.length > 2 ? 9 : 10.5) * dpr}px Inter, system-ui, sans-serif`
       ctx.beginPath()
-      ctx.arc(cx, cy, BADGE_R * dpr, 0, Math.PI * 2)
-      ctx.fillStyle = shade(kind, sgm.value)
-      ctx.fill()
-      ctx.lineWidth = 1.5 * dpr
-      ctx.strokeStyle = cssVar('--c-chart')
-      ctx.stroke()
-      ctx.fillStyle = '#111318'
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      if (lane.plan) {
+        // plan: light badge with a coloured ring, text in the normal label colour (readable in both themes)
+        ctx.fillStyle = cssVar('--c-chart')
+        ctx.fill()
+        ctx.fillStyle = shade(sgm.kind, sgm.value, 0.35)
+        ctx.fill()
+        ctx.lineWidth = 1.5 * dpr
+        ctx.strokeStyle = shade(sgm.kind, sgm.value)
+        ctx.stroke()
+        ctx.fillStyle = cssVar('--chart-label')
+      } else {
+        ctx.fillStyle = shade(sgm.kind, sgm.value)
+        ctx.fill()
+        ctx.lineWidth = 1.5 * dpr
+        ctx.strokeStyle = cssVar('--c-chart')
+        ctx.stroke()
+        ctx.fillStyle = '#111318'
+      }
       ctx.fillText(text, cx, cy + 0.5 * dpr)
     })
-  }
+  })
+  // lane captions at the right edge
+  ctx.textAlign = 'right'
+  ctx.font = `600 ${9 * dpr}px Inter, system-ui, sans-serif`
+  const name = { gas: 'plyn', air: 'vzduch', drum: 'buben' } as const
+  ls.forEach((lane, li) => {
+    ctx.fillStyle = cssVar('--chart-axis')
+    ctx.fillText(`${lane.plan ? 'plán ' : ''}${name[lane.kind]}`, left + width - 4 * dpr, laneY(u, li) - 9 * dpr)
+  })
   ctx.restore()
 }
 

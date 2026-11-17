@@ -1,5 +1,5 @@
 // Loads the reference curve whenever the roast's chosen reference changes.
-import type { ReferenceCurve } from '../domain/reference'
+import { startSettings, type ReferenceCurve } from '../domain/reference'
 import type { RefChoice } from '../storage/db'
 import { loadReference } from '../storage/profiles'
 import { createStore } from '../storage/store'
@@ -19,6 +19,10 @@ async function sync() {
   if (loading !== k) return // a newer choice arrived meanwhile
   referenceState.set({ choice, curve, missing: !!choice && !curve })
   loading = ''
+  // before the roast: pre-select the reference's starting gas/air/drum in the control bar
+  if (curve && roast.getSnapshot().status === 'ready') {
+    for (const [kind, v] of Object.entries(startSettings(curve))) roast.setControl(kind as 'gas' | 'air' | 'drum', v)
+  }
 }
 
 roast.subscribe(() => void sync())
