@@ -32,10 +32,12 @@ interface Props {
   overlay: ChartOverlay
   follow: boolean
   onFollowChange: (follow: boolean) => void
+  /** gives access to the chart (e.g. for PNG export) */
+  onReady?: (u: uPlot | null) => void
 }
 
 /** Live BT/ET/RoR chart. Drag = zoom to selection, wheel = zoom, horizontal swipe = pan, double-click = live view. */
-export function LiveChart({ snap, overlay, follow, onFollowChange }: Props) {
+export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const plot = useRef<uPlot | null>(null)
   const followRef = useRef(follow)
@@ -127,6 +129,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange }: Props) {
     }
     const u = new uPlot(opts, [[], [], [], []], el)
     plot.current = u
+    onReady?.(u)
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
@@ -161,6 +164,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange }: Props) {
     ro.observe(el)
     return () => {
       ro.disconnect()
+      onReady?.(null)
       u.destroy()
       plot.current = null
     }

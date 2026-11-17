@@ -8,6 +8,7 @@ export type Route =
   | { name: 'roast'; id: string }
   | { name: 'coffees' }
   | { name: 'profiles' }
+  | { name: 'analysis'; ids: string[] }
   | { name: 'diagnostics' }
 
 export function parseRoute(hash: string): Route {
@@ -18,6 +19,7 @@ export function parseRoute(hash: string): Route {
   if (parts[0] === 'historie') return { name: 'history', coffeeId: q.get('kava') }
   if (parts[0] === 'kavy') return { name: 'coffees' }
   if (parts[0] === 'profily') return { name: 'profiles' }
+  if (parts[0] === 'analyza') return { name: 'analysis', ids: (q.get('ids') ?? '').split(',').filter(Boolean) }
   if (parts[0] === 'diagnostika') return { name: 'diagnostics' }
   return { name: 'live' }
 }
@@ -39,6 +41,7 @@ export function useRoute(): Route {
 const TABS: { href: string; label: string; match: Route['name'][] }[] = [
   { href: '#/', label: 'Pražení', match: ['live'] },
   { href: '#/historie', label: 'Historie', match: ['history', 'roast'] },
+  { href: '#/analyza', label: 'Analýza', match: ['analysis'] },
   { href: '#/profily', label: 'Profily', match: ['profiles'] },
   { href: '#/kavy', label: 'Kávy', match: ['coffees'] },
 ]

@@ -2,6 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useRef, useState } from 'react'
 import { ClayButton } from '../ui/clay'
 import { ImportDialog, readAlogFiles } from '../ui/ImportDialog'
+import { download, exportAll, importAll } from '../io/exportFiles'
+import { flushBackups } from '../storage/backup'
 import { db } from '../storage/db'
 import { fmtDate, fmtKg, roastSummary } from '../storage/roastQueries'
 import { fmtTime } from '../ui/LiveChart'
@@ -13,8 +15,11 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
   const [q, setQ] = useState('')
   const filter = coffeeId ?? ''
   const fileInput = useRef<HTMLInputElement>(null)
+  const restoreInput = useRef<HTMLInputElement>(null)
   const [importRows, setImportRows] = useState<Awaited<ReturnType<typeof readAlogFiles>> | null>(null)
   const [notice, setNotice] = useState('')
+  const [picked, setPicked] = useState<string[]>([])
+  const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id].slice(-8)))
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -41,6 +46,11 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
             ))}
           </select>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Hledat v názvu a poznámkách" className={`${inputCls} w-64`} />
+          {picked.length > 0 && (
+            <ClayButton variant="primary" onClick={() => go(`#/analyza?ids=${picked.join(',')}`)} disabled={picked.length < 2}>
+              Porovnat ({picked.length})
+            </ClayButton>
+          )}
           <ClayButton onClick={() => fileInput.current?.click()} title="Vyber jeden nebo více souborů .alog">
             Importovat z Artisanu
           </ClayButton>
@@ -76,6 +86,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
         <table className="w-full border-separate border-spacing-y-1.5 text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
+              <th className="w-8 px-3 font-normal" title="Vyber 2–8 pražení k porovnání"></th>
               <th className="px-3 font-normal">Datum</th>
               <th className="px-3 font-normal">Káva</th>
               <th className="px-3 text-right font-normal">Zelená</th>
@@ -97,6 +108,9 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
                   onClick={() => go(`#/historie/${r.id}`)}
                   className="cursor-pointer bg-[#1f2128] tabular-nums shadow-[0_4px_12px_rgba(0,0,0,.25)] transition hover:bg-[#262a33] [&>td:first-child]:rounded-l-2xl [&>td:last-child]:rounded-r-2xl [&>td]:px-3 [&>td]:py-2.5"
                 >
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={picked.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4" />
+                  </td>
                   <td className="text-zinc-300">{fmtDate(r.roastDate)}</td>
                   <td className="font-semibold">
                     {r.coffee || 'Bez názvu'}
@@ -117,6 +131,35 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
         </table>
       )}
       {roasts && roasts.length > 0 && rows.length === 0 && <p className="text-zinc-400">Filtru neodpovídá žádné pražení.</p>}
+      <div className="mt-8 flex flex-wrap items-center gap-3 rounded-3xl bg-[#1f2128] p-4 text-sm">
+        <span className="font-semibold">Data</span>
+        <span className="text-zinc-400">Kompletní záloha všech pražení, káv a profilů v jednom souboru.</span>
+        <ClayButton
+          className="ml-auto"
+          onClick={async () => download(`coffee-roasting-studio-zaloha-${new Date().toISOString().slice(0, 10)}.json`, await exportAll(), 'application/json')}
+        >
+          Stáhnout zálohu všeho
+        </ClayButton>
+        <ClayButton onClick={() => restoreInput.current?.click()}>Obnovit ze zálohy</ClayButton>
+        <input
+          ref={restoreInput}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={async (e) => {
+            const f = e.target.files?.[0]
+            e.target.value = ''
+            if (!f) return
+            try {
+              const n = await importAll(await f.text())
+              await flushBackups()
+              setNotice(`Obnoveno: ${n.roasts} pražení, ${n.coffees} káv, ${n.profiles} profilů (existující se přepsala, nic se nesmazalo).`)
+            } catch (err) {
+              setNotice(`Obnova selhala: ${err instanceof Error ? err.message : String(err)}`)
+            }
+          }}
+        />
+      </div>
     </Page>
   )
 }

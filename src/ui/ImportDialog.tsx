@@ -21,6 +21,8 @@ interface Row {
   roasted: string
   include: boolean
   exists: boolean
+  /** when the file was saved – used if the date inside the file is clearly wrong */
+  fileDate: string
 }
 
 /** Reads the chosen .alog files and lets the user name the coffee before importing. */
@@ -31,9 +33,9 @@ export async function readAlogFiles(files: File[]): Promise<Row[]> {
         const rec = alogToRecord(parseAlog(await f.text()), { fileName: f.name })
         const exists = !!(await db.roasts.get(rec.id))
         const kg = rec.roastedWeightG ? String(rec.roastedWeightG / 1000).replace('.', ',') : ''
-        return { fileName: f.name, preview: rec, coffee: rec.coffee, roasted: kg, include: true, exists }
+        return { fileName: f.name, preview: rec, coffee: rec.coffee, roasted: kg, include: true, exists, fileDate: new Date(f.lastModified).toISOString() }
       } catch (e) {
-        return { fileName: f.name, error: e instanceof Error ? e.message : String(e), coffee: '', roasted: '', include: false, exists: false }
+        return { fileName: f.name, error: e instanceof Error ? e.message : String(e), coffee: '', roasted: '', include: false, exists: false, fileDate: '' }
       }
     }),
   )
@@ -125,7 +127,18 @@ export function ImportDialog({ initial, onClose }: { initial: Row[]; onClose: (i
                     {r.exists && <span className="ml-2 text-xs text-amber-300">už importováno – přepíše se</span>}
                     {r.error && <span className="ml-2 text-xs text-rose-300">{r.error}</span>}
                   </td>
-                  <td className="pr-3 text-zinc-300">{r.preview ? fmtDate(r.preview.roastDate) : ''}</td>
+                  <td className="pr-3 text-zinc-300">
+                    {r.preview ? fmtDate(r.preview.roastDate) : ''}
+                    {r.preview && r.fileDate && Math.abs(Date.parse(r.preview.roastDate) - Date.parse(r.fileDate)) > 7 * 864e5 && (
+                      <button
+                        className="ml-2 text-xs text-amber-300 underline"
+                        title={`Datum v souboru se liší od data uložení souboru (${fmtDate(r.fileDate)}) – možná špatně nastavené hodiny`}
+                        onClick={() => set(i, { preview: { ...r.preview!, roastDate: r.fileDate } })}
+                      >
+                        použít {fmtDate(r.fileDate).split(' ').slice(0, 3).join(' ')}?
+                      </button>
+                    )}
+                  </td>
                   <td className="pr-3 text-right">{r.preview?.phases ? fmtTime(r.preview.phases.total) : '—'}</td>
                   <td className="pr-3 text-right">{r.preview?.phases?.dtr != null ? `${r.preview.phases.dtr.toFixed(1)} %` : '—'}</td>
                   <td className="pr-3 text-right">{r.preview?.greenWeightG ? `${(r.preview.greenWeightG / 1000).toString().replace('.', ',')} kg` : '—'}</td>

@@ -1,5 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type uPlot from 'uplot'
+import { alogFileName, recordToAlog } from '../io/alogExport'
+import { chartToPng, download, recordToCsv } from '../io/exportFiles'
+import { backupFileName } from '../storage/roastRecord'
 import { computeRoR } from '../domain/ror'
 import { CONTROL_UNIT, EVENT_LABEL, findEvent, type ControlKind, type EventType } from '../domain/events'
 import { PHASE_COLOR, PHASE_LABEL } from '../domain/phases'
@@ -33,6 +37,15 @@ export function RoastDetailScreen({ id }: { id: string }) {
 function Detail({ r }: { r: RoastRecord }) {
   const s = roastSummary(r)
   const [follow, setFollow] = useState(false)
+  const chart = useRef<uPlot | null>(null)
+  const base = alogFileName(r).replace(/\.alog$/, '')
+  const exportPng = async () => {
+    if (!chart.current) return
+    const sub = [fmtDate(r.roastDate), s.total != null && `celkem ${fmtTime(s.total)}`, s.dtr != null && `DTR ${s.dtr.toFixed(1)} %`, r.lossPct != null && `ztráta ${r.lossPct.toFixed(1)} %`]
+      .filter(Boolean)
+      .join(' · ')
+    download(`${base}.png`, await chartToPng(chart.current, r.coffee || 'Pražení', sub), 'image/png')
+  }
 
   const snap: LiveSnapshot = useMemo(
     () => ({
@@ -110,7 +123,20 @@ function Detail({ r }: { r: RoastRecord }) {
             <Stat label="Drop BT" value={s.dropBT == null ? '—' : `${s.dropBT.toFixed(1)}°`} />
           </div>
           <div className="relative h-[28rem] rounded-3xl bg-[#1b1d23] p-3 shadow-[inset_0_2px_10px_rgba(0,0,0,.45)]">
-            <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} />
+            <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} onReady={(u) => (chart.current = u)} />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="mr-1 text-xs uppercase tracking-wide text-zinc-500">Export</span>
+            <ClayButton onClick={() => download(alogFileName(r), recordToAlog(r), 'text/plain')} title="Otevřeš v Artisanu (File → Open)">
+              .alog (Artisan)
+            </ClayButton>
+            <ClayButton onClick={() => download(`${base}.csv`, recordToCsv(r), 'text/csv')} title="Excel / Numbers: středník, desetinná čárka">
+              CSV
+            </ClayButton>
+            <ClayButton onClick={() => void exportPng()}>PNG graf</ClayButton>
+            <ClayButton onClick={() => download(backupFileName(r), JSON.stringify(r, null, 1), 'application/json')} title="Kompletní záznam pražení">
+              JSON
+            </ClayButton>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Panel>

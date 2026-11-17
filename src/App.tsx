@@ -6,7 +6,9 @@ import { HistoryScreen } from './screens/HistoryScreen'
 import { LiveScreen } from './screens/LiveScreen'
 import { RoastDetailScreen } from './screens/RoastDetailScreen'
 import { ProfilesScreen } from './screens/ProfilesScreen'
+import { AnalysisScreen } from './screens/AnalysisScreen'
 import { useRoute } from './ui/nav'
+import { ErrorBoundary } from './ui/ErrorBoundary'
 
 export default function App() {
   const r = useRoute()
@@ -17,6 +19,14 @@ export default function App() {
       void disconnectRoaster()
     }
   }, [r.name])
+  return (
+    <ErrorBoundary resetKey={location.hash}>
+      <Screen r={r} />
+    </ErrorBoundary>
+  )
+}
+
+function Screen({ r }: { r: ReturnType<typeof useRoute> }) {
   switch (r.name) {
     case 'diagnostics':
       return <DiagnosticsScreen />
@@ -28,6 +38,8 @@ export default function App() {
       return <CoffeesScreen />
     case 'profiles':
       return <ProfilesScreen />
+    case 'analysis':
+      return <AnalysisScreen ids={r.ids} />
     default:
       return <LiveScreen />
   }
