@@ -5,7 +5,7 @@ import { persistState } from '../storage/persistence'
 import { applyUpdate, pwaState } from '../pwa'
 
 const chip =
-  'flex items-center gap-2 rounded-full bg-[var(--c-chip)] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]'
+  'flex items-center gap-1.5 rounded-full bg-[var(--c-chip)] px-2.5 py-1 text-xs shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]'
 
 /** Header chip: backup folder state, one click fixes what is missing. */
 export function BackupChip() {

@@ -98,16 +98,16 @@ export function LiveScreen() {
   }
 
   return (
-    <div className="flex h-screen flex-col gap-3 bg-[var(--c-bg)] p-4 text-zinc-100">
-      <header className="flex items-center gap-3">
-        <img src="./icon.svg" alt="Roasting Studio" className="h-8 w-8 shrink-0" />
+    <div className="flex h-screen flex-col gap-2 bg-[var(--c-bg)] p-2.5 text-zinc-100">
+      <header className="flex items-center gap-2">
+        <img src="./icon.svg" alt="Roasting Studio" className="h-6 w-6 shrink-0" />
         <NavTabs />
-        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--c-chip)] px-3 py-1.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]">
+        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--c-chip)] px-2.5 py-1 text-xs shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]">
           <span className={`h-2.5 w-2.5 rounded-full ${STATE[conn].dot}`} />
           {STATE[conn].label}
         </div>
         {state.status !== 'ready' && (
-          <span className="min-w-0 flex-1 truncate text-sm text-zinc-300" title={state.coffee}>
+          <span className="min-w-0 flex-1 truncate text-xs text-zinc-300" title={state.coffee}>
             {state.coffee || 'Bez názvu'}
             {state.greenWeightG ? ` · ${String(state.greenWeightG / 1000).replace('.', ',')} kg` : ''}
           </span>
@@ -117,19 +117,19 @@ export function LiveScreen() {
           <BackupChip />
           <ThemeToggle />
           {state.status === 'roasting' && (
-            <ClayButton variant="danger" onClick={() => roast.finish()} title="Ukončí pražení (přidá Drop, pokud chybí)">
+            <ClayButton variant="danger" onClick={() => roast.finish()} size="sm" title="Ukončí pražení (přidá Drop, pokud chybí)">
               Finish
             </ClayButton>
           )}
           {conn === 'idle' ? (
-            <ClayButton variant={state.status === 'roasting' ? 'default' : 'primary'} onClick={run(connectRoaster)} disabled={!supported}>
+            <ClayButton size="sm" variant={state.status === 'roasting' ? 'default' : 'primary'} onClick={run(connectRoaster)} disabled={!supported}>
               Připojit pražičku
             </ClayButton>
           ) : (
-            <ClayButton onClick={run(disconnectRoaster)}>Odpojit</ClayButton>
+            <ClayButton size="sm" onClick={run(disconnectRoaster)}>Odpojit</ClayButton>
           )}
           {isReplay ? (
-            <ClayButton onClick={() => stopReplay()}>Zastavit přehrávání</ClayButton>
+            <ClayButton size="sm" onClick={() => stopReplay()}>Zastavit přehrávání</ClayButton>
           ) : (
             <MoreMenu
               items={[
@@ -207,8 +207,8 @@ export function LiveScreen() {
           )}
           {state.status === 'finished' && <SummaryPanel state={state} />}
         </div>
-        <div className="flex w-64 shrink-0 flex-col gap-2">
-          <div className={`grid grid-cols-2 gap-2 ${stale ? 'opacity-50' : ''}`}>
+        <div className="flex w-52 shrink-0 flex-col gap-1.5">
+          <div className={`grid grid-cols-2 gap-1.5 ${stale ? 'opacity-50' : ''}`}>
             <Readout label="BT" value={bt} unit="°C" color={CURVE_COLORS.bt} />
             <Readout label="ET" value={et} unit="°C" color={CURVE_COLORS.et} />
             <Readout label="RoR" value={ror} unit="°C/min" color={CURVE_COLORS.ror} />
@@ -267,14 +267,14 @@ function useKeyboardShortcuts() {
 function Readout(props: { label: string; value?: number | null; text?: string; unit?: string; color: string }) {
   const display = props.text ?? (props.value == null ? '—' : props.value.toFixed(1))
   return (
-    <div className="rounded-2xl bg-[var(--c-surface)] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_6px_16px_var(--sh)]">
+    <div className="rounded-xl bg-[var(--c-surface)] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_6px_16px_var(--sh)]">
       <div className="flex items-baseline justify-between">
         <span className="text-xs font-semibold tracking-wide" style={{ color: props.color }}>
           {props.label}
         </span>
         {props.unit && <span className="text-[10px] text-zinc-500">{props.unit}</span>}
       </div>
-      <div className="text-[2.1rem] font-semibold leading-tight tabular-nums tracking-tight" style={{ color: props.color }}>
+      <div className="text-[1.65rem] font-semibold leading-tight tabular-nums tracking-tight" style={{ color: props.color }}>
         {display}
       </div>
     </div>

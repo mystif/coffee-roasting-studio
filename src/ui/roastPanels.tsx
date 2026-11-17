@@ -41,7 +41,7 @@ export function EventPanel({ state }: { state: RoastState }) {
   const tp = findEvent(state.events, 'TP')
 
   return (
-    <div className={`${CARD} flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto p-3`}>
+    <div className={`${CARD} flex min-h-0 flex-1 flex-col gap-1 overflow-auto p-2`}>
       <div className="flex items-center justify-between px-1">
         <span className="text-sm font-semibold text-zinc-300">Události</span>
         <button
@@ -61,7 +61,7 @@ export function EventPanel({ state }: { state: RoastState }) {
             <button
               disabled={!roasting}
               onClick={() => roast.mark(type)}
-              className={`w-full rounded-2xl px-3 py-2 text-left transition active:translate-y-px disabled:opacity-40 ${
+              className={`w-full rounded-xl px-2.5 py-1.5 text-left text-sm transition active:translate-y-px disabled:opacity-40 ${
                 isNext
                   ? 'bg-gradient-to-b from-sky-400 to-sky-600 text-sky-950 ring-2 ring-sky-300/50'
                   : e

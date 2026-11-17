@@ -16,6 +16,8 @@ export function ClayButton(props: {
   variant?: 'primary' | 'danger' | 'default'
   className?: string
   title?: string
+  /** compact variant for the header */
+  size?: 'sm'
   children: ReactNode
 }) {
   const color =
@@ -29,7 +31,7 @@ export function ClayButton(props: {
       onClick={props.onClick}
       disabled={props.disabled}
       title={props.title}
-      className={`rounded-2xl px-5 py-2.5 text-sm font-semibold transition active:translate-y-px disabled:opacity-40 ${color} shadow-[inset_0_1px_0_rgba(255,255,255,.25),0_6px_14px_var(--sh)] ${props.className ?? ''}`}
+      className={`${props.size === 'sm' ? 'rounded-xl px-3 py-1 text-xs' : 'rounded-2xl px-5 py-2.5 text-sm'} font-semibold transition active:translate-y-px disabled:opacity-40 ${color} shadow-[inset_0_1px_0_rgba(255,255,255,.25),0_6px_14px_var(--sh)] ${props.className ?? ''}`}
     >
       {props.children}
     </button>

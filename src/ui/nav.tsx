@@ -51,14 +51,14 @@ export function NavTabs() {
   const route = useRoute()
   const roast = useRoastState()
   return (
-    <nav className="flex items-center gap-1 rounded-2xl bg-[var(--c-bg)] p-1 shadow-[inset_0_2px_6px_var(--sh-in)]">
+    <nav className="flex items-center gap-0.5 rounded-xl bg-[var(--c-bg)] p-0.5 shadow-[inset_0_2px_6px_var(--sh-in)]">
       {TABS.map((t) => {
         const active = t.match.includes(route.name)
         return (
           <a
             key={t.href}
             href={t.href}
-            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-semibold transition ${
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
               active ? 'bg-[var(--c-raised)] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_4px_10px_var(--sh)]' : 'text-zinc-400 hover:text-zinc-100'
             }`}
           >
@@ -115,12 +115,12 @@ export function MoreMenu({ items }: { items: { label: string; hint?: string; onC
       <button
         onClick={() => setOpen((o) => !o)}
         title="Další akce"
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--c-chip)] text-lg text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)] hover:text-zinc-100"
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-chip)] text-base text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)] hover:text-zinc-100"
       >
         ⋯
       </button>
       {open && (
-        <div className="absolute right-0 top-11 z-40 w-64 rounded-2xl bg-[var(--c-raised)] p-1.5 shadow-[0_16px_40px_var(--sh)] ring-1 ring-white/5">
+        <div className="absolute right-0 top-9 z-40 w-64 rounded-2xl bg-[var(--c-raised)] p-1.5 shadow-[0_16px_40px_var(--sh)] ring-1 ring-white/5">
           {items.map((it) => (
             <button
               key={it.label}
