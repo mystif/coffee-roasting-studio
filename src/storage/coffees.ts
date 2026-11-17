@@ -3,7 +3,7 @@ import { flushBackups } from './backup'
 
 export type CoffeeInput = Omit<Coffee, 'id' | 'createdAt'>
 
-export const emptyCoffee = (): CoffeeInput => ({ name: '', country: '', region: '', farm: '', process: '', variety: '', notes: '' })
+export const emptyCoffee = (): CoffeeInput => ({ name: '', country: '', region: '', farm: '', process: '', variety: '', altitude: '', screen: '', moisture: '', crop: '', notes: '' })
 
 export async function addCoffee(c: CoffeeInput): Promise<Coffee> {
   const coffee: Coffee = { ...c, name: c.name.trim(), id: crypto.randomUUID(), createdAt: new Date().toISOString() }

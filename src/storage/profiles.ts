@@ -51,7 +51,7 @@ export async function createProfileFromSuggestion(
 ): Promise<Profile> {
   const p: Profile = {
     id: crypto.randomUUID(),
-    name: `Návrh · ${coffee.name} · ${s.style === 'espresso' ? 'espresso' : 'filtr'}`,
+    name: `Návrh · ${coffee.name} · ${{ filter: 'filtr', medium: 'střední', dark: 'tmavé' }[s.style]}`,
     coffee: coffee.name,
     coffeeId: coffee.id,
     fromRoastId: null,

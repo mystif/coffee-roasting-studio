@@ -6,15 +6,8 @@ import { db } from '../storage/db'
 import { ClayButton, Panel } from '../ui/clay'
 import { Page, inputCls } from '../ui/nav'
 import { SuggestPanel } from '../ui/SuggestPanel'
+import { CoffeeFields } from '../ui/CoffeeFields'
 
-const FIELDS: [keyof CoffeeInput, string, string][] = [
-  ['name', 'Název', 'např. Colombia Huila'],
-  ['country', 'Země', 'Kolumbie'],
-  ['region', 'Region', 'Huila'],
-  ['farm', 'Farma', ''],
-  ['process', 'Zpracování', 'washed / natural / honey'],
-  ['variety', 'Odrůda', 'Caturra'],
-]
 
 export function CoffeesScreen() {
   const coffees = useLiveQuery(() => db.coffees.orderBy('name').toArray(), [])
@@ -66,7 +59,7 @@ export function CoffeesScreen() {
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{c.name}</p>
                 <p className="truncate text-sm text-zinc-400">
-                  {[c.country, c.region, c.farm, c.process, c.variety].filter(Boolean).join(' · ') || '—'}
+                  {[c.country, c.region, c.farm, c.process, c.variety].filter(Boolean).join(' · ') || 'doplň zemi a zpracování pro přesnější návrh profilu'}
                 </p>
               </div>
               <a href={`#/historie?kava=${c.id}`} className="text-sm text-zinc-400 hover:text-zinc-100">
@@ -77,7 +70,7 @@ export function CoffeesScreen() {
               </ClayButton>
               <ClayButton onClick={() => setEditing(c.id)}>Upravit</ClayButton>
               </div>
-              {suggest === c.id && <SuggestPanel coffee={c} />}
+              {suggest === c.id && <SuggestPanel coffee={c} onEdit={() => setEditing(c.id)} />}
             </Panel>
           ),
         )}
@@ -102,21 +95,7 @@ function CoffeeForm(props: {
   }
   return (
     <Panel className="grid gap-3">
-      <div className="grid grid-cols-3 gap-3">
-        {FIELDS.map(([k, label, ph]) => (
-          <label key={k} className="flex flex-col gap-1 text-xs text-zinc-400">
-            {label}
-            <input
-              autoFocus={k === 'name'}
-              value={v[k]}
-              placeholder={ph}
-              onChange={(e) => setV({ ...v, [k]: e.target.value })}
-              onKeyDown={(e) => e.key === 'Enter' && void save()}
-              className={inputCls}
-            />
-          </label>
-        ))}
-      </div>
+      <CoffeeFields v={v} set={(patch) => setV({ ...v, ...patch })} />
       <label className="flex flex-col gap-1 text-xs text-zinc-400">
         Poznámky
         <textarea rows={2} value={v.notes} onChange={(e) => setV({ ...v, notes: e.target.value })} className={inputCls} />

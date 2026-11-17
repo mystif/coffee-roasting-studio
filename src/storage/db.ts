@@ -11,6 +11,11 @@ export interface Coffee {
   farm: string
   process: string
   variety: string
+  /** optional details that make the suggested profile more precise (ids from coffeeCatalog) */
+  altitude?: string
+  screen?: string
+  moisture?: string
+  crop?: string
   notes: string
   createdAt: string
 }

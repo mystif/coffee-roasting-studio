@@ -1,13 +1,21 @@
 // Starting roast profile for a new coffee (3 kg green on the Dongyi BR-3.5).
 //
-// Base = medians of the user's own roasts on this roaster (Artisan files, 3 kg, dark blends excluded):
-//   espresso (10 roasts, Drop ≥ 203 °C): Charge 202, TP 1:21 @ 88, DE 4:42, FC 8:52 @ 180.6, Drop 12:11 @ 205, DTR 24.5 %
-//   filter   (17 roasts, Drop ≤ 202 °C): Charge 192, TP 1:22 @ 85, DE 4:46, FC 9:26 @ 180.7, Drop 11:42 @ 200, DTR 19 %
-// plus the user's usual gas/air steps. It is then adjusted with common roasting rules for bean
-// density (origin), processing and variety. It is a starting point for the first roast, not a guarantee.
+// Base = medians of the user's own roasts on this roaster (Artisan files, 3 kg):
+//   filter (17 roasts, Drop ≤ 202 °C): Charge 192, TP 1:22 @ 85, DE 4:46, FC 9:26 @ 180.7, Drop 11:42 @ 200, DTR 19 %
+//   medium / espresso (10 roasts, Drop 203–214 °C): Charge 202, DE 4:42, FC 8:52 @ 180.6, Drop 12:11 @ 205, DTR 24.5 %
+//   dark (4 roasts BLACK/BlackSheep): Charge 208, DE 5:06, FC 9:34 @ 179.5, Drop 13:59 @ 213, DTR ~32 %
+// plus the user's usual gas/air steps, then adjusted by the coffee's description (see coffeeCatalog).
+// It is a starting point for the first roast, not a guarantee.
+import { ALTITUDES, CROPS, MOISTURES, PROCESSES, SCREENS, VARIETIES, densityEffect, densityOf, findChoice, type Choice, type Density, type Effect } from './coffeeCatalog'
 import type { ControlChange, ControlKind, EventType, RoastEvent } from './events'
 
-export type RoastStyle = 'espresso' | 'filter'
+export type RoastStyle = 'filter' | 'medium' | 'dark'
+
+export const STYLE_LABEL: Record<RoastStyle, string> = {
+  filter: 'Filtr · světlé',
+  medium: 'Střední · espresso',
+  dark: 'Tmavé',
+}
 
 export interface CoffeeInfo {
   name: string
@@ -15,6 +23,10 @@ export interface CoffeeInfo {
   region?: string
   process: string
   variety: string
+  altitude?: string
+  screen?: string
+  moisture?: string
+  crop?: string
 }
 
 export interface Suggestion {
@@ -30,6 +42,8 @@ export interface Suggestion {
   plan: ControlChange[]
   /** why the base was adjusted – shown to the user */
   reasons: string[]
+  /** inputs that are still unknown and would make the suggestion more precise */
+  missing: string[]
   /** synthetic curve for the reference (seconds from CHARGE) */
   samples: { t: number[]; bt: number[]; et: number[] }
   events: RoastEvent[]
@@ -48,11 +62,25 @@ interface Base {
   gasDry: number
   gasFc: number
   gasLate: number | null
+  airStart: number
 }
 
-const BASE: Record<RoastStyle, Base> = {
-  espresso: { charge: 202, tp: 81, tpBT: 88, dry: 282, fc: 532, fcBT: 180.6, dev: 176, dropBT: 205, gasStart: 5.5, gasDry: 4.5, gasFc: 3.5, gasLate: 3 },
-  filter: { charge: 192, tp: 82, tpBT: 85, dry: 286, fc: 566, fcBT: 180.7, dev: 140, dropBT: 200, gasStart: 5, gasDry: 4, gasFc: 3, gasLate: null },
+const BASE: Record<RoastStyle, Base & { note: string }> = {
+  filter: {
+    charge: 192, tp: 82, tpBT: 85, dry: 286, fc: 566, fcBT: 180.7, dev: 140, dropBT: 200,
+    gasStart: 5, gasDry: 4, gasFc: 3, gasLate: null, airStart: 25,
+    note: 'Základ: tvoje filtrová pražení na Dongyi (medián 17 pražení, 3 kg): Drop ~200 °C, DTR ~19 %.',
+  },
+  medium: {
+    charge: 202, tp: 81, tpBT: 88, dry: 282, fc: 532, fcBT: 180.6, dev: 176, dropBT: 205,
+    gasStart: 5.5, gasDry: 4.5, gasFc: 3.5, gasLate: 3, airStart: 35,
+    note: 'Základ: tvoje středně pražená / espresso pražení na Dongyi (medián 10 pražení, 3 kg): Drop ~205 °C, DTR ~24 %.',
+  },
+  dark: {
+    charge: 208, tp: 81, tpBT: 80, dry: 306, fc: 574, fcBT: 179.5, dev: 265, dropBT: 213,
+    gasStart: 5.5, gasDry: 4.5, gasFc: 3.5, gasLate: 2.5, airStart: 35,
+    note: 'Základ: tvoje tmavá pražení na Dongyi (BLACK / BlackSheep, 4 pražení, 3 kg): Drop ~213 °C, DTR ~32 %.',
+  },
 }
 
 const DRY_END_TEMP = 130
@@ -61,108 +89,101 @@ const norm = (s: string) =>
   s
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
 
-const has = (text: string, words: string[]) => words.some((w) => text.includes(w))
+/** Fallback for free-text coffees (e.g. imported before the dropdowns existed). */
+const TEXT_DENSITY: [Density, string[]][] = [
+  ['high', ['kenya', 'kena', 'ethiop', 'etiop', 'rwand', 'burund', 'colomb', 'kolumb', 'guatemal', 'costa rica', 'kostarik', 'panam', 'bolivi', 'tanzan', 'yemen', 'jemen', 'ekvador', 'ecuador']],
+  ['low', ['brazil', 'brazi', 'indi', 'sumatr', 'indones', 'vietnam', 'kuba', 'cuba', 'haiti']],
+]
+const TEXT_PROCESS: [string, string[]][] = [
+  ['anaerobic', ['anaerob']],
+  ['carbonic', ['carbonic']],
+  ['infused', ['infus', 'fermen']],
+  ['decaf', ['decaf', 'bezkofein', 'swiss water']],
+  ['wet-hulled', ['wet hulled', 'giling']],
+  ['black-honey', ['black honey']],
+  ['red-honey', ['red honey']],
+  ['yellow-honey', ['honey']],
+  ['pulped-natural', ['pulped']],
+  ['natural', ['natural', 'natur']],
+  ['washed', ['wash', 'myta']],
+]
 
-/** Dense, high-grown origins take more energy; soft, low-grown ones scorch easily. */
-const HIGH_DENSITY = ['kenya', 'kena', 'ethiop', 'etiop', 'rwand', 'burund', 'colomb', 'kolumb', 'guatemal', 'costa rica', 'kostarik', 'panam', 'peru', 'bolivi', 'hondur', 'el salvador', 'salvador', 'tanzan', 'yemen', 'jemen']
-const LOW_DENSITY = ['brazil', 'brazil', 'brazi', 'indi', 'sumatr', 'indones', 'java', 'jav', 'papua', 'png', 'mexik', 'mexic', 'nikaragu', 'nicaragu', 'ugand', 'vietnam', 'laos', 'cin', 'china', 'hawaj', 'hawai']
+function apply(b: Base, e: Effect) {
+  b.charge += e.charge ?? 0
+  b.gasStart += e.gasStart ?? 0
+  b.gasDry += e.gasDry ?? 0
+  b.gasFc += e.gasFc ?? 0
+  b.dry += e.dry ?? 0
+  b.fc += (e.fc ?? 0) + (e.dry ?? 0) // a longer drying phase also moves FC
+  b.dev += e.dev ?? 0
+  b.dropBT += e.drop ?? 0
+}
 
 export function suggestProfile(c: CoffeeInfo, style: RoastStyle): Suggestion {
-  const b = { ...BASE[style] }
-  const reasons: string[] = [
-    style === 'espresso'
-      ? 'Základ: tvoje espresso pražení na Dongyi (medián 10 pražení, 3 kg): Drop ~205 °C, DTR ~24 %.'
-      : 'Základ: tvoje filtrová pražení na Dongyi (medián 17 pražení, 3 kg): Drop ~200 °C, DTR ~19 %.',
-  ]
-  const origin = norm(`${c.country} ${c.region ?? ''} ${c.name}`)
-  const proc = norm(c.process)
-  const variety = norm(`${c.variety} ${c.name}`)
-
-  // ── density (origin) ──
-  if (has(origin, HIGH_DENSITY)) {
-    b.charge += 3
-    b.gasStart += 0.5
-    b.gasDry += 0.5
-    reasons.push('Hustá zrna z vyšších poloh (původ): Charge +3 °C a víc plynu do Maillardu, aby zrno dobře prohřálo.')
-  } else if (has(origin, LOW_DENSITY)) {
-    b.charge -= 3
-    b.gasDry -= 0.5
-    b.fc += 10
-    reasons.push('Měkčí zrna z nižších poloh (původ): Charge −3 °C a méně plynu v Maillardu proti připálení.')
+  const { note, ...base } = BASE[style]
+  const b: Base = { ...base }
+  const reasons: string[] = [note]
+  const missing: string[] = []
+  const use = (choice: Choice | undefined, prefix?: string) => {
+    if (!choice) return
+    apply(b, choice.effect)
+    if (choice.why) reasons.push(cap(prefix ? `${prefix}: ${choice.why}` : choice.why))
   }
 
-  // ── processing ──
-  if (has(proc, ['anaerob', 'carbonic', 'fermen', 'infus', 'thermal', 'experiment'])) {
-    b.charge -= 8
-    b.gasStart -= 0.5
-    b.gasDry -= 0.5
-    b.gasFc -= 0.5
-    b.dropBT -= 2
-    b.dev -= 10
-    reasons.push('Experimentální/anaerobní zpracování: hodně cukrů, rychle hnědne – Charge −8 °C, méně plynu, Drop −2 °C.')
-  } else if (has(proc, ['natural', 'natur', 'dry process', 'sun dried'])) {
-    b.charge -= 5
-    b.gasStart -= 0.5
-    b.gasDry -= 0.5
-    b.dropBT -= 1
-    b.dev -= 8
-    reasons.push('Natural: vyšší obsah cukrů a rychlejší hnědnutí – Charge −5 °C, o 0,5 kPa méně plynu od začátku i v Maillardu, Drop −1 °C.')
-  } else if (has(proc, ['honey', 'pulped', 'semi'])) {
-    b.charge -= 3
-    b.dropBT -= 0.5
-    reasons.push('Honey / pulped natural: mezi washed a natural – Charge −3 °C.')
-  } else if (has(proc, ['decaf', 'bezkofein', 'swiss water', 'ea process', 'sugar cane'])) {
-    b.charge -= 8
-    b.dropBT -= 3
-    b.dev -= 15
-    reasons.push('Decaf: tmavne rychle a hůř se čte barva – Charge −8 °C, Drop −3 °C.')
-  } else if (has(proc, ['wet hulled', 'giling'])) {
-    b.charge -= 4
-    b.gasDry -= 0.5
-    reasons.push('Wet hulled: měkčí zrno s vyšší vlhkostí – Charge −4 °C, méně plynu v Maillardu.')
-  } else if (has(proc, ['wash', 'mytá', 'myta', 'fully washed'])) {
-    reasons.push('Washed: standardní průběh bez úprav.')
+  // density: altitude when known, otherwise the country's typical density
+  const altitude = findChoice(ALTITUDES, c.altitude)
+  if (altitude && altitude.id !== 'unknown') use(altitude)
+  else {
+    const text = norm(`${c.country} ${c.region ?? ''} ${c.name}`)
+    const d = densityOf(c.country) ?? TEXT_DENSITY.find(([, words]) => words.some((w) => text.includes(w)))?.[0] ?? null
+    if (d) use(densityEffect(d), c.country || undefined)
+    if (!c.country) missing.push('zemi původu')
+    if (!altitude || altitude.id === 'unknown') missing.push('nadmořskou výšku')
   }
 
-  // ── variety ──
-  if (has(variety, ['gesha', 'geisha'])) {
-    b.dropBT -= 1.5
-    b.dev -= 10
-    reasons.push('Gesha: jemná květinová aromatika – kratší vývoj a Drop −1,5 °C.')
+  const proc = findChoice(PROCESSES, c.process) ?? findChoice(PROCESSES, TEXT_PROCESS.find(([, w]) => w.some((x) => norm(c.process).includes(x)))?.[0])
+  if (proc) use(proc)
+  else missing.push('zpracování')
+
+  const variety = findChoice(VARIETIES, c.variety)
+  if (variety && variety.id !== 'unknown') use(variety)
+  else if (!variety) {
+    // free text: recognise the varieties that matter most
+    const v = norm(`${c.variety} ${c.name}`)
+    const hit = VARIETIES.find((x) => x.why && norm(x.label).split(/[ /()]+/).some((w) => w.length > 3 && v.includes(w)))
+    if (hit) use(hit)
+    else missing.push('odrůdu')
   }
-  if (has(variety, ['pacamara', 'maragogyp', 'maragogip', 'elephant'])) {
-    b.charge += 2
-    b.dry += 15
-    reasons.push('Velká zrna (Pacamara/Maragogype): Charge +2 °C a o něco delší sušení.')
-  }
-  if (has(variety, ['robusta', 'canephora', 'conilon'])) {
-    b.dropBT += 2
-    b.dev += 20
-    reasons.push('Robusta: delší vývoj a Drop +2 °C.')
-  }
-  if (has(variety, ['peaberry', 'caracol'])) {
-    b.gasDry -= 0.5
-    reasons.push('Peaberry: menší kulatá zrna se prohřejí rychleji – méně plynu v Maillardu.')
+
+  for (const [list, value, label] of [
+    [SCREENS, c.screen, 'velikost zrna'],
+    [MOISTURES, c.moisture, 'vlhkost'],
+    [CROPS, c.crop, 'stáří sklizně'],
+  ] as const) {
+    const ch = findChoice(list as Choice[], value)
+    if (ch && ch.id !== 'unknown') use(ch)
+    else missing.push(label)
   }
 
   // the user never goes above 5.5 kPa in their roasts → don't suggest more
   b.gasStart = clamp(b.gasStart, 2, 5.5)
   b.gasDry = clamp(b.gasDry, 2, b.gasStart)
   b.gasFc = clamp(b.gasFc, 2, b.gasDry)
+  b.dev = Math.max(90, b.dev)
 
   const drop = b.fc + b.dev
   const plan: ControlChange[] = [
     { t: 0, kind: 'gas', value: b.gasStart },
-    { t: 0, kind: 'air', value: style === 'espresso' ? 35 : 25 },
+    { t: 0, kind: 'air', value: b.airStart },
     { t: Math.max(b.tp + 30, b.dry - 20), kind: 'gas', value: b.gasDry },
     { t: b.dry, kind: 'air', value: 50 },
     { t: b.fc - 40, kind: 'gas', value: b.gasFc },
     { t: b.fc, kind: 'air', value: 65 },
   ]
   if (b.gasLate !== null && b.dev > 120) plan.push({ t: b.fc + 90, kind: 'gas', value: Math.max(2, Math.min(b.gasLate, b.gasFc - 0.5)) })
-  if (style === 'espresso') plan.push({ t: drop - 60, kind: 'air', value: 75 })
+  if (style !== 'filter') plan.push({ t: drop - (style === 'dark' ? 90 : 60), kind: 'air', value: 75 })
   plan.sort((x, y) => x.t - y.t || kindOrder(x.kind) - kindOrder(y.kind))
 
   const keyPoints = { charge: b.charge, tp: b.tp, tpBT: b.tpBT, dry: b.dry, fc: b.fc, fcBT: b.fcBT, drop, dropBT: b.dropBT }
@@ -180,6 +201,7 @@ export function suggestProfile(c: CoffeeInfo, style: RoastStyle): Suggestion {
     dtr: round1((b.dev / drop) * 100),
     plan,
     reasons,
+    missing,
     samples,
     events: [
       ev('CHARGE', 0, b.charge),
@@ -190,6 +212,8 @@ export function suggestProfile(c: CoffeeInfo, style: RoastStyle): Suggestion {
     ],
   }
 }
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 const kindOrder = (k: ControlKind) => ({ gas: 0, air: 1, drum: 2 })[k]
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(x * 2) / 2))
