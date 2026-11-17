@@ -246,6 +246,7 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
   }
   drawControlBadges(u, o)
   drawBtPoints(u, o)
+  drawRefPoints(u, o)
   drawEstimates(u, o)
   ctx.restore()
 }
@@ -503,6 +504,57 @@ function drawEstimates(u: uPlot, o: ChartOverlay) {
     ctx.fillRect(bx, top + 26 * dpr, w, 17 * dpr)
     ctx.fillStyle = cssVar('--chart-label-auto')
     ctx.fillText(label, bx + 5 * dpr, top + 29 * dpr)
+  }
+  ctx.restore()
+}
+
+// ── reference events as badges on the reference BT curve ──
+const REF_POINTS = ['CHARGE', 'DRY', 'FCs', 'DROP'] as const
+
+function drawRefPoints(u: uPlot, o: ChartOverlay) {
+  const ref = o.reference
+  const zero = zeroT(o)
+  if (!ref || zero === null) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio
+  const { left, top, width, height } = u.bbox
+  ctx.save()
+  ctx.font = `600 ${10.5 * dpr}px Inter, system-ui, sans-serif`
+  ctx.textBaseline = 'middle'
+  for (const type of REF_POINTS) {
+    const e = findEvent(ref.events, type)
+    if (!e || e.bt == null) continue
+    const x = u.valToPos(zero + e.t, 'x', true)
+    const y = u.valToPos(e.bt, 'temp', true)
+    if (x < left || x > left + width) continue
+    // hollow point on the dashed reference curve
+    ctx.beginPath()
+    ctx.arc(x, y, 4.5 * dpr, 0, Math.PI * 2)
+    ctx.fillStyle = cssVar('--c-chart')
+    ctx.fill()
+    ctx.lineWidth = 2 * dpr
+    ctx.strokeStyle = cssVar('--chart-ref-bt')
+    ctx.stroke()
+    // label below-right (live labels sit above-left), time for all but CHARGE
+    const time = type === 'CHARGE' ? '' : ` ${fmtTime(e.t)}`
+    const label = `ref ${EVENT_SHORT[type]}${time} · ${e.bt.toFixed(1)}°`
+    const w = ctx.measureText(label).width + 12 * dpr
+    const h = 18 * dpr
+    let bx = x + 8 * dpr
+    let by = y + 8 * dpr
+    if (bx + w > left + width) bx = x - w - 8 * dpr
+    if (by + h > top + height) by = y - h - 8 * dpr
+    ctx.beginPath()
+    ctx.roundRect(bx, by, w, h, 6 * dpr)
+    ctx.fillStyle = cssVar('--chart-label-bg')
+    ctx.fill()
+    ctx.setLineDash([3 * dpr, 2 * dpr])
+    ctx.lineWidth = dpr
+    ctx.strokeStyle = cssVar('--chart-ref-bt')
+    ctx.stroke()
+    ctx.setLineDash([])
+    ctx.fillStyle = cssVar('--chart-label-auto')
+    ctx.fillText(label, bx + 6 * dpr, by + h / 2 + 0.5 * dpr)
   }
   ctx.restore()
 }
