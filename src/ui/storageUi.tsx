@@ -1,4 +1,5 @@
 import { roast, session } from '../live/runtime'
+import { askConfirm } from './dialog'
 import { backupState, chooseBackupFolder, grantBackupPermission } from '../storage/backup'
 import { persistState } from '../storage/persistence'
 import { applyUpdate, pwaState } from '../pwa'
@@ -48,8 +49,8 @@ export function RestoredBanner() {
       </span>
       <button
         className="ml-4 rounded-xl px-3 py-1 text-xs text-sky-200 hover:bg-white/10"
-        onClick={() => {
-          if (!confirm('Opravdu zahodit rozpracované pražení?')) return
+        onClick={async () => {
+          if (!(await askConfirm('Zahodit rozpracované pražení?', { message: 'Obnovená data se smažou.', okLabel: 'Zahodit', danger: true }))) return
           roast.newRoast()
           session.clear()
         }}

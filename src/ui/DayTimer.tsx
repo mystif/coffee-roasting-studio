@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { askConfirm } from './dialog'
 import { useEffect, useState } from 'react'
 import { GAS_KG_PER_HOUR, fmtDuration, gasKg } from '../domain/daySession'
 import { dayState, startDay, stopDay } from '../live/dayState'
@@ -62,8 +63,9 @@ export function DayTimer() {
       ) : (
         <button
           className={`${btn} bg-gradient-to-b from-rose-400 to-rose-600 text-rose-950`}
-          onClick={() => {
-            if (confirm(`Ukončit den pražení?\n\n${fmtDuration(ms)} · plyn ~${kg(gasKg(ms))} · ${dávky(roasts ?? 0)}`)) void stopDay()
+          onClick={async () => {
+            if (await askConfirm('Ukončit den pražení?', { message: `${fmtDuration(ms)} · plyn ~${kg(gasKg(ms))} · ${dávky(roasts ?? 0)}`, okLabel: 'Ukončit den', danger: true }))
+              void stopDay()
           }}
         >
           Stop

@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { askConfirm } from '../ui/dialog'
 import { useState } from 'react'
 import { addCoffee, deleteCoffee, emptyCoffee, updateCoffee, type CoffeeInput } from '../storage/coffees'
 import { db } from '../storage/db'
@@ -46,7 +47,7 @@ export function CoffeesScreen() {
               onSave={(v) => updateCoffee(c.id, v)}
               onDelete={async () => {
                 const n = counts?.get(c.id) ?? 0
-                if (!confirm(`Smazat kávu „${c.name}“?${n ? ` Její pražení (${n}) zůstanou v historii.` : ''}`)) return
+                if (!(await askConfirm(`Smazat kávu „${c.name}“?`, { message: n ? `Její pražení (${n}) zůstanou v historii.` : undefined, okLabel: 'Smazat', danger: true }))) return
                 await deleteCoffee(c.id)
                 setEditing(null)
               }}

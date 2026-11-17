@@ -9,6 +9,7 @@ import { ProfilesScreen } from './screens/ProfilesScreen'
 import { AnalysisScreen } from './screens/AnalysisScreen'
 import { useRoute } from './ui/nav'
 import { ErrorBoundary } from './ui/ErrorBoundary'
+import { DialogHost } from './ui/dialog'
 
 export default function App() {
   const r = useRoute()
@@ -20,9 +21,12 @@ export default function App() {
     }
   }, [r.name])
   return (
-    <ErrorBoundary resetKey={location.hash}>
-      <Screen r={r} />
-    </ErrorBoundary>
+    <>
+      <ErrorBoundary resetKey={location.hash}>
+        <Screen r={r} />
+      </ErrorBoundary>
+      <DialogHost />
+    </>
   )
 }
 

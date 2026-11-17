@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { askConfirm, askText, showAlert } from '../ui/dialog'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type uPlot from 'uplot'
 import { alogFileName, recordToAlog } from '../io/alogExport'
@@ -80,20 +81,22 @@ function Detail({ r }: { r: RoastRecord }) {
       current: { gas: first('gas'), air: first('air'), drum: first('drum') },
       reference: findEvent(r.events, 'CHARGE') ? roastChoice(r) : null, // this roast as background curve
     })
-    if (!ok) return alert('Právě probíhá pražení. Nové připravíš po jeho dokončení.')
+    if (!ok) return void showAlert('Právě probíhá pražení', 'Nové připravíš po jeho dokončení.')
     go('#/')
   }
 
   const saveProfile = async () => {
-    if (!findEvent(r.events, 'CHARGE')) return alert('Pražení nemá Charge – nedá se použít jako profil.')
-    const name = prompt('Název profilu', `${r.coffee || 'Profil'} · ${fmtDate(r.roastDate)}`)
+    if (!findEvent(r.events, 'CHARGE')) return showAlert('Nelze uložit jako profil', 'Pražení nemá Charge, křivky se nedají zarovnat.')
+    const name = await askText('Uložit jako profil', `${r.coffee || 'Profil'} · ${fmtDate(r.roastDate)}`, {
+      message: 'Křivka, události a plán plynu/vzduchu se uloží jako referenční profil.',
+    })
     if (name === null) return
     await createProfileFromRoast(r, name)
     go('#/profily')
   }
 
   const remove = async () => {
-    if (!confirm('Smazat toto pražení z aplikace? Soubor zálohy ve složce zůstane.')) return
+    if (!(await askConfirm('Smazat toto pražení?', { message: 'Z aplikace se smaže, soubor zálohy ve složce zůstane.', okLabel: 'Smazat', danger: true }))) return
     await db.roasts.delete(r.id)
     go('#/historie')
   }

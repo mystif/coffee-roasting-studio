@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { askConfirm, showAlert } from '../ui/dialog'
 import { useState } from 'react'
 import { findEvent } from '../domain/events'
 import { phaseStats } from '../domain/phases'
@@ -37,7 +38,7 @@ function ProfileCard({ p }: { p: Profile }) {
   const use = () => {
     const first = (k: 'gas' | 'air' | 'drum') => p.controls.find((c) => c.kind === k)?.value
     if (!roast.prepare({ coffee: p.coffee, coffeeId: p.coffeeId, greenWeightG: roast.getSnapshot().greenWeightG, reference: profileChoice(p), current: { gas: first('gas'), air: first('air'), drum: first('drum') } }))
-      return alert('Právě probíhá pražení. Profil vybereš po jeho dokončení.')
+      return void showAlert('Právě probíhá pražení', 'Profil vybereš po jeho dokončení.')
     go('#/')
   }
   const save = async () => {
@@ -110,7 +111,7 @@ function ProfileCard({ p }: { p: Profile }) {
               variant="danger"
               className="ml-auto"
               onClick={async () => {
-                if (confirm(`Smazat profil „${p.name}“? Pražení v historii zůstanou.`)) await deleteProfile(p.id)
+                if (await askConfirm(`Smazat profil „${p.name}“?`, { message: 'Pražení v historii zůstanou.', okLabel: 'Smazat', danger: true })) await deleteProfile(p.id)
               }}
             >
               Smazat profil
