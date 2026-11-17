@@ -14,7 +14,7 @@ import {
 } from '../live/runtime'
 import { CURVE_COLORS, LiveChart, fmtTime, type ChartOverlay } from '../ui/LiveChart'
 import { ClayButton } from '../ui/clay'
-import { ControlsBar, EventPanel, PhaseStrip, ReferenceStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
+import { ControlsBar, EventPanel, PhaseStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
 import { referenceState } from '../live/referenceState'
 import { estimates, useFcTarget } from '../live/estimates'
 import { MoreMenu, NavTabs } from '../ui/nav'
@@ -153,17 +153,6 @@ export function LiveScreen() {
       </div>
 
       <PhaseStrip state={state} now={now} est={est} />
-      {ref.curve && state.status !== 'finished' && (
-        <ReferenceStrip
-          curve={ref.curve}
-          roastTime={charge && now !== null ? (drop?.t ?? now) - charge.t : null}
-          bt={drop ? drop.bt : bt} // after DROP the comparison stays at the DROP values
-          ror={drop ? (snap.ror[snap.t.findIndex((x) => x >= drop.t)] ?? null) : ror}
-          afterTP={!!findEvent(state.events, 'TP')}
-          charged={!!charge}
-          done={state.events.map((e) => e.type)}
-        />
-      )}
       {ref.missing && <p className="text-xs text-amber-300">Vybraná reference už neexistuje.</p>}
 
       <div className="flex min-h-0 flex-1 gap-3">

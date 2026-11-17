@@ -5,7 +5,6 @@ import { db } from '../storage/db'
 import { profileChoice } from '../storage/profiles'
 import { EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR, PHASE_TEXT, PHASE_LABEL, currentPhase, phaseStats } from '../domain/phases'
-import { deviation, startSettings, upcoming } from '../domain/reference'
 import { AIR_PRESETS, CONTROL_LIMITS, GAS_PRESETS, type RoastState } from '../live/roastStore'
 import { formatControl, shade } from './chartMarks'
 import type { ControlKind } from '../domain/events'
@@ -296,6 +295,12 @@ export function ControlsBar({ state }: { state: RoastState }) {
       <Presets label="Plyn" unit="kPa" hint="↑ ↓" kind="gas" values={GAS_PRESETS} current={c.gas} enabled={enabled} />
       <Presets label="Vzduch (Hot Air)" unit="%" hint="1–5" kind="air" values={AIR_PRESETS} current={c.air} enabled={enabled} />
       <Stepper label="Buben" unit="%" value={c.drum} kind="drum" enabled={enabled} hint="[ ]" />
+      {state.reference && (
+        <div className="min-w-0 max-w-56 leading-tight" title={state.reference.label}>
+          <div className="text-[11px] uppercase tracking-wide text-zinc-500">Reference</div>
+          <div className="truncate text-sm font-semibold text-zinc-200">{state.reference.label}</div>
+        </div>
+      )}
       <DayTimer />
     </div>
   )
@@ -463,84 +468,5 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</div>
       <div className="text-xl font-semibold tabular-nums">{value}</div>
     </div>
-  )
-}
-
-// ── live comparison with the reference ─────────────────────
-
-export function ReferenceStrip(props: {
-  curve: import('../domain/reference').ReferenceCurve
-  roastTime: number | null
-  bt: number | null
-  ror: number | null
-  afterTP: boolean
-  charged: boolean
-  /** event types already marked in this roast */
-  done: EventType[]
-}) {
-  const { curve, roastTime } = props
-  if (!props.charged || roastTime === null) {
-    const st = startSettings(curve)
-    const parts = [
-      st.gas !== undefined && `plyn ${formatControl('gas', st.gas)} kPa`,
-      st.air !== undefined && `vzduch ${st.air} %`,
-      st.drum !== undefined && `buben ${st.drum} %`,
-    ].filter(Boolean)
-    return (
-      <div className={`${CARD} flex items-center gap-4 px-4 py-2 text-sm text-zinc-400`}>
-        <span className="min-w-0 truncate">
-          Reference <b className="text-zinc-200">{curve.label}</b> – náhled v grafu, porovnávání začne po Charge.
-        </span>
-        {parts.length > 0 && (
-          <span className="ml-auto whitespace-nowrap rounded-xl bg-[var(--c-bg)] px-3 py-1 text-zinc-300">
-            Na začátek nastav: <b className="text-zinc-100">{parts.join(' · ')}</b>
-          </span>
-        )}
-      </div>
-    )
-  }
-  const d = deviation(curve, roastTime, props.bt, props.ror, props.afterTP)
-  const next = upcoming(curve, roastTime, props.done)
-  const sign = (x: number, digits = 1) => `${x > 0 ? '+' : x < 0 ? '−' : '±'}${Math.abs(x).toFixed(digits)}`
-  const tone = (x: number | null, warn: number) => (x === null ? 'text-zinc-500' : Math.abs(x) >= warn ? 'text-amber-300' : 'text-emerald-300')
-  const ctrlName = { gas: 'plyn', air: 'vzduch', drum: 'buben' } as const
-  return (
-    <div className={`${CARD} flex items-center gap-5 px-4 py-2 text-sm`}>
-      <span className="max-w-56 truncate text-zinc-400" title={curve.label}>
-        vs <b className="text-zinc-200">{curve.label}</b>
-      </span>
-      <Dev label="Δ BT" value={d.dBT === null ? '—' : `${sign(d.dBT)} °C`} cls={tone(d.dBT, 3)} />
-      <Dev
-        label="Δ čas"
-        value={d.dTime === null ? '—' : `${d.dTime > 0 ? '+' : d.dTime < 0 ? '−' : '±'}${fmtTime(Math.abs(d.dTime))}`}
-        cls={tone(d.dTime, 15)}
-        title="+ = pomaleji než reference při stejné BT"
-      />
-      <Dev label="Δ RoR" value={d.dRoR === null ? '—' : sign(d.dRoR)} cls={tone(d.dRoR, 2)} />
-      <div className="ml-auto flex gap-5 text-zinc-300">
-        {next.event && (
-          <span>
-            {EVENT_LABEL[next.event.type]} v {fmtTime(next.event.t)}
-            {next.event.bt != null && ` · ${next.event.bt.toFixed(1)}°`}{' '}
-            <span className="text-zinc-500">(za {fmtTime(next.event.t - roastTime)})</span>
-          </span>
-        )}
-        {next.control && (
-          <span>
-            {ctrlName[next.control.kind]} {String(next.control.value).replace('.', ',')} {next.control.kind === 'gas' ? 'kPa' : '%'}{' '}
-            <span className="text-zinc-500">za {fmtTime(next.control.t - roastTime)}</span>
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function Dev({ label, value, cls, title }: { label: string; value: string; cls: string; title?: string }) {
-  return (
-    <span className="flex items-baseline gap-2" title={title}>
-      <span className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</span>
-      <span className={`text-lg font-semibold tabular-nums ${cls}`}>{value}</span>
-    </span>
   )
 }
