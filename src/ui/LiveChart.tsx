@@ -64,6 +64,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
   onFollowRef.current = onFollowChange
   const overlayRef = useRef(overlay)
   overlayRef.current = overlay
+  const laneSpaceRef = useRef(-1)
   const clickRef = useRef({ onBtClick, onNoteClick })
   clickRef.current = { onBtClick, onNoteClick }
   const { theme } = themeState.use()
@@ -86,6 +87,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       width: el.clientWidth,
       height: el.clientHeight,
       legend: { show: false },
+      padding: [8, null, (_u: uPlot) => lanesSpace(overlayRef.current), null] as uPlot.Padding,
       cursor: { drag: { x: true, y: false, setScale: true }, points: { size: 7 } },
       scales: {
         x: {
@@ -101,7 +103,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
         },
         temp: {
           range: (_u, min, max) => [
-            Math.min(overlayRef.current.reference ? 0 : 30, Number.isFinite(min) ? Math.floor(min / 10) * 10 : 30), // room for the gas/air bars (+ plan lanes)
+            Math.min(60, Number.isFinite(min) ? Math.floor(min / 10) * 10 : 60),
             Math.max(250, Number.isFinite(max) ? Math.ceil(max / 10) * 10 + 10 : 250),
           ],
         },
@@ -110,6 +112,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       axes: [
         {
           ...AXIS,
+          size: X_AXIS_SIZE,
           incrs: [15, 30, 60, 120, 300, 600],
           // ticks on whole minutes of roast time (counted from CHARGE)
           splits: (_u, _ax, min, max, incr) => {
@@ -120,7 +123,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
           },
           values: (_u, splits) => splits.map((v) => fmtTime(v - (zeroT(overlayRef.current) ?? 0))),
         },
-        { ...AXIS, scale: 'temp', values: (_u, splits) => splits.map((v) => `${v}°`), size: 48 },
+        { ...AXIS, scale: 'temp', values: (_u, splits) => splits.map((v) => `${v}°`), size: 58 }, // wide enough for the lane captions below
         {
           ...AXIS,
           scale: 'ror',
@@ -223,7 +226,14 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
   }, [theme]) // colours are baked into the chart → rebuild on theme change
 
   useEffect(() => {
-    plot.current?.setData([snap.t, snap.bt, snap.et, snap.ror] as uPlot.AlignedData, true)
+    const u = plot.current
+    if (!u) return
+    const space = lanesSpace(overlay)
+    if (space !== laneSpaceRef.current) {
+      laneSpaceRef.current = space
+      u.setSize({ width: u.width, height: u.height }) // recompute padding for the lanes under the axis
+    }
+    u.setData([snap.t, snap.bt, snap.et, snap.ror] as uPlot.AlignedData, true)
   }, [snap, overlay, theme])
 
   return <div ref={wrap} className="h-full w-full" />
@@ -335,11 +345,19 @@ function drawReference(u: uPlot, o: ChartOverlay) {
 // Lanes from the bottom: your gas, your air, (drum if it changed), then the reference plan
 // ("plán") for gas/air/drum – so you can see what to set and when.
 
-const LANE_PITCH = 22 // px (badge Ø 20 px)
-const BAR_H = 10
-const BADGE_R = 10
-const PLAN_BAR_H = 6
-const PLAN_BADGE_R = 8
+// lanes sit below the time axis (outside the plot), compact
+const X_AXIS_SIZE = 26 // px reserved for the time labels
+const LANE_PITCH = 15 // px (badge Ø 13 px)
+const BAR_H = 6
+const BADGE_R = 6.5
+const PLAN_BAR_H = 4
+const PLAN_BADGE_R = 6
+
+/** Room needed under the time axis for the gas/air/drum lanes (css px). */
+const lanesSpace = (o: ChartOverlay) => {
+  const n = lanes(o).length
+  return n ? n * LANE_PITCH + 6 : 4
+}
 
 interface Lane {
   kind: ControlKind
@@ -371,7 +389,7 @@ function lanes(o: ChartOverlay): Lane[] {
   return out
 }
 
-const laneY = (u: uPlot, i: number) => u.bbox.top + u.bbox.height - (16 + i * LANE_PITCH) * devicePixelRatio
+const laneY = (u: uPlot, i: number) => u.bbox.top + u.bbox.height + (X_AXIS_SIZE + 4 + LANE_PITCH / 2 + i * LANE_PITCH) * devicePixelRatio
 
 function drawControlBars(u: uPlot, o: ChartOverlay) {
   const ls = lanes(o)
@@ -421,7 +439,7 @@ function drawControlBadges(u: uPlot, o: ChartOverlay) {
       const cx = xs[i]
       if (!show[i] || cx > left + width) return
       const text = formatControl(sgm.kind, sgm.value)
-      ctx.font = `700 ${(lane.plan ? (text.length > 2 ? 8 : 9) : text.length > 2 ? 9 : 10.5) * dpr}px Inter, system-ui, sans-serif`
+      ctx.font = `700 ${(text.length > 2 ? 6.5 : 7.5) * dpr}px Inter, system-ui, sans-serif`
       ctx.beginPath()
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
       if (lane.plan) {
@@ -445,13 +463,13 @@ function drawControlBadges(u: uPlot, o: ChartOverlay) {
       ctx.fillText(text, cx, cy + 0.5 * dpr)
     })
   })
-  // lane captions at the right edge
+  // lane captions left of the plot (under the temperature axis)
   ctx.textAlign = 'right'
-  ctx.font = `600 ${9 * dpr}px Inter, system-ui, sans-serif`
+  ctx.font = `600 ${8.5 * dpr}px Inter, system-ui, sans-serif`
   const name = { gas: 'plyn', air: 'vzduch', drum: 'buben' } as const
   ls.forEach((lane, li) => {
     ctx.fillStyle = cssVar('--chart-axis')
-    ctx.fillText(`${lane.plan ? 'plán ' : ''}${name[lane.kind]}`, left + width - 4 * dpr, laneY(u, li) - 9 * dpr)
+    ctx.fillText(`${lane.plan ? 'plán ' : ''}${name[lane.kind]}`, left - 4 * dpr, laneY(u, li))
   })
   ctx.restore()
 }
