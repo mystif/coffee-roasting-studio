@@ -5,6 +5,7 @@ import type { ConnectionState } from '../roaster/RoasterConnection'
 import {
   connectRoaster,
   disconnectRoaster,
+  liveReading,
   roast,
   startReplay,
   stopReplay,
@@ -43,8 +44,11 @@ export function LiveScreen() {
   const fileInput = useRef<HTMLInputElement>(null)
   const supported = 'serial' in navigator
 
-  const bt = lastValue(snap.bt)
-  const et = lastValue(snap.et)
+  // big numbers: the fastest reading straight from the roaster (2× per second) when connected
+  const fast = liveReading.use()
+  const fresh = snap.source === 'roaster' && conn === 'connected' && Date.now() - fast.at < 3000
+  const bt = fresh && fast.bt !== null ? fast.bt : lastValue(snap.bt)
+  const et = fresh && fast.et !== null ? fast.et : lastValue(snap.et)
   const ror = lastValue(snap.ror)
   const now = snap.t.length ? snap.t[snap.t.length - 1] : null
   const isReplay = snap.source === 'replay'

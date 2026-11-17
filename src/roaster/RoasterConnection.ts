@@ -9,6 +9,7 @@ import {
   registersToFloat,
   toHex,
 } from './modbus'
+import { createTicker } from './ticker'
 
 export const SPP_UUID = '00001101-0000-1000-8000-00805f9b34fb'
 
@@ -60,7 +61,7 @@ export class RoasterConnection {
   private rxWaiter: (() => void) | null = null
   private state: ConnectionState = 'idle'
   private wanted = false // user wants to be connected
-  private pollTimer: ReturnType<typeof setTimeout> | null = null
+  private ticker = createTicker()
   private failures = 0
   private stats: Stats = { ok: 0, timeouts: 0, crcErrors: 0, otherErrors: 0, reconnects: 0 }
 
@@ -141,13 +142,11 @@ export class RoasterConnection {
   }
 
   private schedule(delay: number) {
-    this.stopPolling()
-    this.pollTimer = setTimeout(() => void this.pollOnce(), delay)
+    this.ticker.after(delay, () => void this.pollOnce())
   }
 
   private stopPolling() {
-    if (this.pollTimer) clearTimeout(this.pollTimer)
-    this.pollTimer = null
+    this.ticker.cancel()
   }
 
   private async pollOnce() {

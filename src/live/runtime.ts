@@ -4,8 +4,15 @@ import { parseAlog } from '../io/alog'
 import { RoasterConnection, type ConnectionState } from '../roaster/RoasterConnection'
 import { LiveSession } from './LiveSession'
 import { RoastStore, useRoast } from './roastStore'
+import { createStore } from '../storage/store'
 
-export const SAMPLE_INTERVAL_MS = 1000 // verified in S0: median latency 61 ms over Bluetooth
+export const SAMPLE_INTERVAL_MS = 1000 // curve / recording cadence (algorithms validated at this rate)
+/** The roaster is polled faster so the big BT/ET numbers follow its display almost 1:1 (S0: median latency 61 ms). */
+export const POLL_INTERVAL_MS = 500
+
+/** Latest reading straight from the roaster (every poll) – for the big numbers only. */
+export const liveReading = createStore({ at: 0, bt: null as number | null, et: null as number | null })
+let lastRecordedAt = 0
 
 export const session = new LiveSession()
 export const roast = new RoastStore(session)
@@ -22,12 +29,20 @@ let connection: RoasterConnection | null = null
 function getConnection(): RoasterConnection {
   if (!connection) {
     connection = new RoasterConnection({
-      intervalMs: SAMPLE_INTERVAL_MS,
+      intervalMs: POLL_INTERVAL_MS,
       timeoutMs: 1000,
-      onSample: (s) => session.add(s.at, s.bt, s.et),
+      onSample: (s) => {
+        liveReading.set({ at: s.at, bt: s.bt, et: s.et })
+        // the curve keeps a steady 1 s cadence (tolerance for poll jitter)
+        if (s.at - lastRecordedAt >= SAMPLE_INTERVAL_MS - 150) {
+          lastRecordedAt = s.at
+          session.add(s.at, s.bt, s.et)
+        }
+      },
       onState: (s) => {
         connState = s
         emitConn()
+        void keepAwake(s !== 'idle')
       },
       onStats: () => {},
       onLog: (m) => {
@@ -90,4 +105,34 @@ export async function startReplay(file: File, speed = 10) {
 // development only: lets automated UI checks drive the live buffer (never in the deployed app)
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   Object.assign(window, { __roastingDev: { session, roast } })
+}
+
+// ── screen wake lock while the roaster is connected ──
+type WakeLock = { release(): Promise<void> }
+let wakeLock: WakeLock | null = null
+let wantAwake = false
+
+async function keepAwake(on: boolean) {
+  wantAwake = on
+  const wl = (navigator as Navigator & { wakeLock?: { request(type: 'screen'): Promise<WakeLock> } }).wakeLock
+  if (!wl) return
+  try {
+    if (on && !wakeLock) wakeLock = await wl.request('screen')
+    if (!on && wakeLock) {
+      await wakeLock.release()
+      wakeLock = null
+    }
+  } catch {
+    wakeLock = null // e.g. tab not visible – retried when it becomes visible
+  }
+}
+
+if (typeof document !== 'undefined') {
+  // the browser drops the lock when the tab is hidden → take it again when it comes back
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && wantAwake) {
+      wakeLock = null
+      void keepAwake(true)
+    }
+  })
 }
