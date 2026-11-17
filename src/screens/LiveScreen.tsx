@@ -18,6 +18,7 @@ import { ControlsBar, EventPanel, PhaseStrip, StartBar, SummaryPanel } from '../
 import { referenceState } from '../live/referenceState'
 import { estimates, useFcTarget } from '../live/estimates'
 import { MoreMenu, NavTabs } from '../ui/nav'
+import { DELETE, askNote } from '../ui/dialog'
 import { ThemeToggle } from '../ui/theme'
 import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
 
@@ -61,6 +62,24 @@ export function LiveScreen() {
   )
 
   useKeyboardShortcuts()
+
+  // notes clicked on the BT curve
+  const noteTitle = (t: number) => {
+    const i = snap.t.findIndex((x) => x >= t)
+    const btAt = i >= 0 ? snap.bt[i] : null
+    return `${charge ? fmtTime(t - charge.t) : fmtTime(t)}${btAt != null ? ` · ${btAt.toFixed(1)} °C` : ''}`
+  }
+  const addNote = async (t: number) => {
+    const text = await askNote(`Poznámka v ${noteTitle(t)}`, '', { message: 'Uloží se do pražení na toto místo křivky BT.' })
+    if (text && text !== DELETE) roast.addNoteAt(t, text)
+  }
+  const editNote = async (id: string) => {
+    const e = state.events.find((x) => x.id === id)
+    if (!e) return
+    const text = await askNote(`Poznámka v ${noteTitle(e.t)}`, e.note ?? '', { allowDelete: true })
+    if (text === DELETE) roast.removeEvent(id)
+    else if (text) roast.updateNote(id, text)
+  }
 
   const run = (fn: () => Promise<void>) => async () => {
     setError(null)
@@ -158,7 +177,14 @@ export function LiveScreen() {
         <div className="relative flex min-w-0 flex-1 flex-col rounded-3xl bg-[var(--c-chart)] p-3 pt-2 shadow-[inset_0_2px_10px_var(--sh-in)]">
           <PhaseStrip state={state} now={now} est={est} />
           <div className="relative min-h-0 flex-1">
-            <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} />
+            <LiveChart
+              snap={snap}
+              overlay={overlay}
+              follow={follow}
+              onFollowChange={setFollow}
+              onBtClick={state.status === 'roasting' ? (t) => void addNote(t) : undefined}
+              onNoteClick={state.status === 'roasting' ? (id) => void editNote(id) : undefined}
+            />
           </div>
           {!follow && state.status !== 'finished' && (
             <ClayButton className="absolute right-6 top-14" onClick={() => setFollow(true)}>

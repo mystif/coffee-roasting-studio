@@ -78,3 +78,21 @@ describe('RoastStore.prepare (duplicate as new)', () => {
     expect(store.getSnapshot().coffee).toBe('Kenya')
   })
 })
+
+describe('notes on the curve', () => {
+  it('adds a note at the clicked time with BT/ET of the nearest reading, edits and deletes it', () => {
+    const { store, feed } = setup()
+    feed(200, 2)
+    store.start({ coffee: '', greenWeightG: null })
+    for (let k = 0; k < 20; k++) feed(150 + k)
+    store.addNoteAt(10.4, '  kouř  ')
+    const note = store.getSnapshot().events.find((e) => e.type === 'CUSTOM')!
+    expect(note).toMatchObject({ t: 10, bt: 158, note: 'kouř' })
+    store.updateNote(note.id, 'první praskání?')
+    expect(store.getSnapshot().events.find((e) => e.id === note.id)!.note).toBe('první praskání?')
+    store.removeEvent(note.id)
+    expect(store.getSnapshot().events.some((e) => e.type === 'CUSTOM')).toBe(false)
+    store.undo()
+    expect(store.getSnapshot().events.some((e) => e.type === 'CUSTOM')).toBe(true)
+  })
+})

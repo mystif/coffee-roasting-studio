@@ -11,8 +11,12 @@ interface Request {
   defaultValue?: string
   okLabel?: string
   danger?: boolean
+  /** prompt only: extra red button that resolves with DELETE */
+  deleteLabel?: string
   resolve: (value: string | boolean | null) => void
 }
+
+export const DELETE = '\u0000delete'
 
 const queue = createStore<{ current: Request | null }>({ current: null })
 
@@ -27,6 +31,12 @@ export const askConfirm = (title: string, opts: { message?: string; okLabel?: st
 
 export const askText = (title: string, defaultValue = '', opts: { message?: string; okLabel?: string } = {}) =>
   open({ kind: 'prompt', title, defaultValue, ...opts }).then((v) => (typeof v === 'string' ? v : null))
+
+/** Note editor: resolves with the text, DELETE, or null (cancel). */
+export const askNote = (title: string, defaultValue = '', opts: { message?: string; allowDelete?: boolean } = {}) =>
+  open({ kind: 'prompt', title, defaultValue, message: opts.message, deleteLabel: opts.allowDelete ? 'Smazat poznámku' : undefined }).then((v) =>
+    typeof v === 'string' ? v : null,
+  )
 
 /** Mount once at the app root. */
 export function DialogHost() {
@@ -68,6 +78,14 @@ export function DialogHost() {
           />
         )}
         <div className="mt-5 flex justify-end gap-2">
+          {r.deleteLabel && (
+            <button
+              onClick={() => close(DELETE)}
+              className="mr-auto rounded-2xl bg-gradient-to-b from-rose-400 to-rose-600 px-4 py-2.5 text-sm font-semibold text-rose-950 shadow-[0_4px_10px_var(--sh)]"
+            >
+              {r.deleteLabel}
+            </button>
+          )}
           {r.kind !== 'alert' && (
             <button onClick={cancel} className="rounded-2xl bg-[var(--c-raised)] px-5 py-2.5 text-sm font-semibold text-zinc-100 shadow-[0_4px_10px_var(--sh)]">
               Zrušit

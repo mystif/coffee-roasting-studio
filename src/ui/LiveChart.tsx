@@ -44,10 +44,14 @@ interface Props {
   onFollowChange: (follow: boolean) => void
   /** gives access to the chart (e.g. for PNG export) */
   onReady?: (u: uPlot | null) => void
+  /** click on/near the BT curve (session time) – e.g. to add a note */
+  onBtClick?: (t: number) => void
+  /** click on an existing note point */
+  onNoteClick?: (eventId: string) => void
 }
 
 /** Live BT/ET/RoR chart. Drag = zoom to selection, wheel = zoom, horizontal swipe = pan, double-click = live view. */
-export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Props) {
+export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBtClick, onNoteClick }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const plot = useRef<uPlot | null>(null)
   const followRef = useRef(follow)
@@ -56,6 +60,8 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
   onFollowRef.current = onFollowChange
   const overlayRef = useRef(overlay)
   overlayRef.current = overlay
+  const clickRef = useRef({ onBtClick, onNoteClick })
+  clickRef.current = { onBtClick, onNoteClick }
   const { theme } = themeState.use()
 
   const setFollow = (f: boolean) => {
@@ -169,6 +175,32 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
       setFollow(true)
       u.setData(u.data, true)
     }
+    // click (not a drag-zoom) on a note point → edit/delete; near the BT curve → new note there
+    let downX = 0
+    const onDown = (e: MouseEvent) => (downX = e.clientX)
+    const onClick = (e: MouseEvent) => {
+      if (Math.abs(e.clientX - downX) > 3) return
+      const x = e.offsetX
+      const y = e.offsetY
+      const tAt = u.posToVal(x, 'x')
+      for (const ev of overlayRef.current.events) {
+        if (ev.type !== 'CUSTOM' || ev.bt == null) continue
+        const px = u.valToPos(ev.t, 'x')
+        const py = u.valToPos(ev.bt, 'temp')
+        if (Math.hypot(px - x, py - y) <= 12) return clickRef.current.onNoteClick?.(ev.id)
+      }
+      if (!clickRef.current.onBtClick) return
+      const data = u.data as (number | null)[][]
+      const xs = data[0] as number[]
+      if (!xs.length) return
+      let i = 0
+      for (let k = 0; k < xs.length; k++) if (Math.abs(xs[k] - tAt) < Math.abs(xs[i] - tAt)) i = k
+      const bt = data[1][i]
+      if (bt == null || Math.abs(xs[i] - tAt) > 10) return
+      if (Math.abs(u.valToPos(bt, 'temp') - y) <= 22) clickRef.current.onBtClick(xs[i])
+    }
+    u.over.addEventListener('mousedown', onDown)
+    u.over.addEventListener('click', onClick)
     u.over.addEventListener('wheel', onWheel, { passive: false })
     u.over.addEventListener('dblclick', onDbl)
 
@@ -237,7 +269,8 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.lineTo(x, top + height)
     ctx.stroke()
     ctx.setLineDash([])
-    const label = `${e.type === 'CUSTOM' ? e.note || '★' : EVENT_SHORT[e.type]}${e.bt != null ? ' ' + e.bt.toFixed(1) + '°' : ''}`
+    if (e.type === 'CUSTOM') continue // notes are labelled on the BT curve (drawNotes)
+    const label = `${EVENT_SHORT[e.type]}${e.bt != null ? ' ' + e.bt.toFixed(1) + '°' : ''}`
     const w = ctx.measureText(label).width + 8 * dpr
     ctx.fillStyle = cssVar('--chart-label-bg')
     ctx.fillRect(x + 3 * dpr, top + 4 * dpr, w, 16 * dpr)
@@ -246,6 +279,7 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
   }
   drawControlBadges(u, o)
   drawBtPoints(u, o)
+  drawNotes(u, o)
   drawRefPoints(u, o)
   drawEstimates(u, o)
   ctx.restore()
@@ -547,6 +581,48 @@ function drawRefPoints(u: uPlot, o: ChartOverlay) {
     ctx.setLineDash([])
     ctx.fillStyle = cssVar('--chart-label-auto')
     ctx.fillText(label, bx + 6 * dpr, by + h / 2 + 0.5 * dpr)
+  }
+  ctx.restore()
+}
+
+// ── notes (custom events) as amber points on the BT curve ──
+function drawNotes(u: uPlot, o: ChartOverlay) {
+  const notes = o.events.filter((e) => e.type === 'CUSTOM' && e.bt != null)
+  if (!notes.length) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio
+  const { left, top, width } = u.bbox
+  ctx.save()
+  ctx.font = `600 ${11 * dpr}px Inter, system-ui, sans-serif`
+  ctx.textBaseline = 'middle'
+  for (const e of notes) {
+    const x = u.valToPos(e.t, 'x', true)
+    const y = u.valToPos(e.bt as number, 'temp', true)
+    if (x < left || x > left + width) continue
+    ctx.beginPath()
+    ctx.arc(x, y, 6 * dpr, 0, Math.PI * 2)
+    ctx.fillStyle = '#f59e0b'
+    ctx.fill()
+    ctx.lineWidth = 2 * dpr
+    ctx.strokeStyle = cssVar('--c-chart')
+    ctx.stroke()
+    const time = o.chargeT === null ? '' : `${fmtTime(e.t - o.chargeT)} · `
+    const text = `★ ${time}${(e.note || 'poznámka').slice(0, 40)}`
+    const w = ctx.measureText(text).width + 12 * dpr
+    const h = 20 * dpr
+    let bx = x - w / 2
+    let by = y - h - 12 * dpr
+    bx = Math.min(Math.max(bx, left), left + width - w)
+    if (by < top) by = y + 12 * dpr
+    ctx.beginPath()
+    ctx.roundRect(bx, by, w, h, 6 * dpr)
+    ctx.fillStyle = cssVar('--chart-label-bg')
+    ctx.fill()
+    ctx.lineWidth = 1.5 * dpr
+    ctx.strokeStyle = '#f59e0b'
+    ctx.stroke()
+    ctx.fillStyle = cssVar('--chart-label')
+    ctx.fillText(text, bx + 6 * dpr, by + h / 2 + 0.5 * dpr)
   }
   ctx.restore()
 }

@@ -101,6 +101,23 @@ export class RoastStore {
     this.set({ events: sortEvents(events), suppressed: this.state.suppressed.filter((s) => s !== type) })
   }
 
+  /** Note at a chosen moment of the roast (clicked on the BT curve); stored as a custom event with BT/ET at that time. */
+  addNoteAt(t: number, note: string) {
+    if (this.state.status !== 'roasting' || !note.trim()) return
+    const snap = this.session.getSnapshot()
+    if (!snap.t.length) return
+    let i = 0
+    for (let k = 0; k < snap.t.length; k++) if (Math.abs(snap.t[k] - t) < Math.abs(snap.t[i] - t)) i = k
+    this.pushUndo()
+    this.set({ events: sortEvents([...this.state.events, makeEvent('CUSTOM', snap, i, false, note.trim())]) })
+  }
+
+  updateNote(id: string, note: string) {
+    if (!this.state.events.some((e) => e.id === id && e.type === 'CUSTOM')) return
+    this.pushUndo()
+    this.set({ events: this.state.events.map((e) => (e.id === id ? { ...e, note: note.trim() } : e)) })
+  }
+
   removeEvent(id: string) {
     const e = this.state.events.find((x) => x.id === id)
     if (!e) return

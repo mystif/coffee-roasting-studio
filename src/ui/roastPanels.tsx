@@ -97,9 +97,16 @@ export function EventPanel({ state }: { state: RoastState }) {
       {state.events
         .filter((e) => e.type === 'CUSTOM')
         .map((e) => (
-          <p key={e.id} className="flex justify-between px-1 text-xs text-zinc-300">
-            <span className="truncate">★ {e.note || 'Vlastní'}</span>
+          <p key={e.id} className="flex items-center gap-1 px-1 text-xs text-zinc-300">
+            <span className="min-w-0 flex-1 truncate" title={e.note}>
+              <span className="text-amber-400">★</span> {e.note || 'Vlastní'}
+            </span>
             <span className="tabular-nums text-zinc-400">{rel(e)}</span>
+            {roasting && (
+              <button onClick={() => roast.removeEvent(e.id)} className="rounded px-1 text-zinc-500 hover:bg-white/10 hover:text-zinc-100" title="Smazat poznámku">
+                ✕
+              </button>
+            )}
           </p>
         ))}
       {custom === null ? (
@@ -126,6 +133,7 @@ export function EventPanel({ state }: { state: RoastState }) {
           className="rounded-2xl bg-[var(--c-bg)] px-3 py-2 text-sm outline-none ring-1 ring-zinc-600 focus:ring-sky-400"
         />
       )}
+      {roasting && <p className="px-1 text-[11px] leading-snug text-zinc-500">Tip: klikni na křivku BT v grafu – poznámka se uloží do toho místa.</p>}
     </div>
   )
 }
