@@ -6,7 +6,9 @@ import { profileChoice } from '../storage/profiles'
 import { EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR, PHASE_TEXT, PHASE_LABEL, currentPhase, phaseStats } from '../domain/phases'
 import { deviation, upcoming } from '../domain/reference'
-import { AIR_PRESETS, CONTROL_LIMITS, type RoastState } from '../live/roastStore'
+import { AIR_PRESETS, CONTROL_LIMITS, GAS_PRESETS, type RoastState } from '../live/roastStore'
+import { formatControl, shade } from './chartMarks'
+import type { ControlKind } from '../domain/events'
 import { roast } from '../live/runtime'
 import { ClayButton } from './clay'
 import { fmtTime } from './LiveChart'
@@ -265,38 +267,49 @@ export function ControlsBar({ state }: { state: RoastState }) {
   const enabled = state.status === 'roasting'
   const c = state.current
   return (
-    <div className={`${CARD} flex items-center gap-6 px-5 py-3 ${enabled ? '' : 'opacity-50'}`}>
+    <div className={`${CARD} flex items-center gap-5 px-5 py-2.5 ${enabled ? '' : 'opacity-50'}`}>
       <span className="text-[11px] font-semibold uppercase leading-tight tracking-wide text-zinc-500">
         Ruční
         <br />
         záznam
       </span>
-      <Stepper label="Plyn" unit="kPa" value={c.gas} kind="gas" enabled={enabled} hint="↑ ↓" />
-      <div className="flex flex-col gap-1">
-        <span className="text-xs text-zinc-400">
-          Vzduch (Hot Air) <span className="text-zinc-600">1–5</span>
-        </span>
-        <div className="flex gap-1 rounded-2xl bg-[var(--c-bg)] p-1">
-          {AIR_PRESETS.map((p) => (
-            <button
-              key={p}
-              disabled={!enabled}
-              onClick={() => roast.setControl('air', p)}
-              className={`rounded-xl px-3 py-1.5 text-sm font-semibold tabular-nums ${
-                c.air === p ? 'bg-sky-500 text-sky-950' : 'text-zinc-300 hover:bg-white/5'
-              }`}
-            >
-              {p} %
-            </button>
-          ))}
-        </div>
-      </div>
+      <Presets label="Plyn" unit="kPa" hint="↑ ↓" kind="gas" values={GAS_PRESETS} current={c.gas} enabled={enabled} />
+      <Presets label="Vzduch (Hot Air)" unit="%" hint="1–5" kind="air" values={AIR_PRESETS} current={c.air} enabled={enabled} />
       <Stepper label="Buben" unit="%" value={c.drum} kind="drum" enabled={enabled} hint="[ ]" />
     </div>
   )
 }
 
-function Stepper(props: { label: string; unit: string; value: number; kind: 'gas' | 'drum'; enabled: boolean; hint: string }) {
+/** Fixed values as a segmented control; the selected one has the same shade as its bar in the chart. */
+function Presets(props: { label: string; unit: string; hint: string; kind: ControlKind; values: number[]; current: number; enabled: boolean }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-xs text-zinc-400">
+        {props.label} <span className="text-zinc-500">{props.unit}</span> <span className="text-zinc-600">{props.hint}</span>
+      </span>
+      <div className="flex gap-0.5 rounded-2xl bg-[var(--c-bg)] p-1">
+        {props.values.map((v) => {
+          const active = props.current === v
+          return (
+            <button
+              key={v}
+              disabled={!props.enabled}
+              onClick={() => roast.setControl(props.kind, v)}
+              style={active ? { background: shade(props.kind, v), color: '#111318' } : undefined}
+              className={`min-w-10 rounded-xl px-2 py-1.5 text-sm font-semibold tabular-nums transition ${
+                active ? 'shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_3px_8px_var(--sh)]' : 'text-zinc-300 hover:bg-white/5'
+              }`}
+            >
+              {formatControl(props.kind, v)}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function Stepper(props: { label: string; unit: string; value: number; kind: 'drum'; enabled: boolean; hint: string }) {
   const step = CONTROL_LIMITS[props.kind].step
   const btn = 'h-9 w-9 rounded-xl bg-[var(--c-raised)] text-lg font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,.15),0_4px_10px_var(--sh)] active:translate-y-px'
   return (

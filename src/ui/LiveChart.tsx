@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import type { LiveSnapshot } from '../live/LiveSession'
-import { CONTROL_UNIT, EVENT_SHORT, findEvent, type ControlChange, type RoastEvent } from '../domain/events'
+import { EVENT_SHORT, findEvent, type ControlChange, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR } from '../domain/phases'
 import type { ReferenceCurve } from '../domain/reference'
 import { cssVar, themeState } from './theme'
+import { controlSegments, formatControl, shade, visibleBadges } from './chartMarks'
 
 /** For DOM elements (theme-aware CSS variables). The canvas reads the resolved values via cssVar. */
 export const CURVE_COLORS = { bt: 'var(--curve-bt)', et: 'var(--curve-et)', ror: 'var(--curve-ror)' }
@@ -83,7 +84,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
         },
         temp: {
           range: (_u, min, max) => [
-            Math.min(60, Number.isFinite(min) ? Math.floor(min / 10) * 10 : 60),
+            Math.min(30, Number.isFinite(min) ? Math.floor(min / 10) * 10 : 30), // 30 °C: room for the gas/air bars
             Math.max(250, Number.isFinite(max) ? Math.ceil(max / 10) * 10 + 10 : 250),
           ],
         },
@@ -120,7 +121,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady }: Pr
         { label: 'RoR', scale: 'ror', stroke: cssVar('--curve-ror'), width: 2, spanGaps: false },
       ],
       hooks: {
-        drawClear: [(u) => drawPhases(u, overlayRef.current), (u) => drawReference(u, overlayRef.current)],
+        drawClear: [(u) => drawPhases(u, overlayRef.current), (u) => drawControlBars(u, overlayRef.current), (u) => drawReference(u, overlayRef.current)],
         draw: [(u) => drawMarks(u, overlayRef.current)],
         setSelect: [
           (u) => {
@@ -236,19 +237,8 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.fillStyle = e.auto ? cssVar('--chart-label-auto') : cssVar('--chart-label')
     ctx.fillText(label, x + 7 * dpr, top + 6.5 * dpr)
   }
-  // manual control records: small flags along the bottom (gas row, air row, drum row)
-  const rows: Record<string, number> = { gas: 0, air: 1, drum: 2 }
-  const color: Record<string, string> = { gas: '#fb923c', air: '#38bdf8', drum: '#a78bfa' }
-  const short: Record<string, string> = { gas: 'G', air: 'A', drum: 'B' }
-  for (const c of o.controls) {
-    const x = u.valToPos(c.t, 'x', true)
-    if (x < left || x > left + width) continue
-    const y = top + height - (14 + rows[c.kind] * 16) * dpr - 8 * dpr
-    const label = `${short[c.kind]} ${c.value}${CONTROL_UNIT[c.kind] === '%' ? '%' : ''}`
-    ctx.fillStyle = color[c.kind]
-    ctx.fillRect(x, y, 2 * dpr, 14 * dpr)
-    ctx.fillText(label, x + 4 * dpr, y + 1.5 * dpr)
-  }
+  drawControlBadges(u, o)
+  drawBtPoints(u, o)
   ctx.restore()
 }
 
@@ -294,6 +284,118 @@ function drawReference(u: uPlot, o: ChartOverlay) {
     ctx.fillStyle = cssVar('--chart-ref-text')
     ctx.fillRect(x, top + height - 34 * dpr - 52 * dpr, dpr, 10 * dpr)
     ctx.fillText(`ref ${EVENT_SHORT[e.type]}`, x + 3 * dpr, top + height - 76 * dpr)
+  }
+  ctx.restore()
+}
+
+// ── manual control log: one bar per control, shade = value, value in a circle ──
+
+const ROWS = { gas: 0, air: 1, drum: 2 } as const
+const ROW_PITCH = 24 // px between rows (badge Ø 20 px)
+const BAR_H = 10
+const BADGE_R = 10
+
+const rowY = (u: uPlot, row: number) => u.bbox.top + u.bbox.height - (16 + row * ROW_PITCH) * devicePixelRatio
+
+function controlEnd(o: ChartOverlay) {
+  return findEvent(o.events, 'DROP')?.t ?? o.now ?? 0
+}
+
+function drawControlBars(u: uPlot, o: ChartOverlay) {
+  if (!o.controls.length) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio
+  const { left, width } = u.bbox
+  ctx.save()
+  for (const sgm of controlSegments(o.controls, controlEnd(o))) {
+    const x0 = Math.max(left, u.valToPos(sgm.from, 'x', true))
+    const x1 = Math.min(left + width, u.valToPos(sgm.to, 'x', true))
+    if (x1 <= x0) continue
+    const y = rowY(u, ROWS[sgm.kind]) - (BAR_H / 2) * dpr
+    ctx.fillStyle = shade(sgm.kind, sgm.value, 0.55)
+    ctx.beginPath()
+    ctx.roundRect(x0, y, x1 - x0, BAR_H * dpr, 3 * dpr)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+function drawControlBadges(u: uPlot, o: ChartOverlay) {
+  if (!o.controls.length) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio
+  const { left, width } = u.bbox
+  const segs = controlSegments(o.controls, controlEnd(o))
+  ctx.save()
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  for (const kind of ['gas', 'air', 'drum'] as const) {
+    const list = segs.filter((x) => x.kind === kind)
+    const xs = list.map((x) => Math.max(left + BADGE_R * dpr, u.valToPos(x.from, 'x', true) + BADGE_R * dpr))
+    const show = visibleBadges(xs, (BADGE_R * 2 + 2) * dpr)
+    list.forEach((sgm, i) => {
+      const cx = xs[i]
+      if (!show[i] || cx > left + width) return
+      const cy = rowY(u, ROWS[kind])
+      const text = formatControl(kind, sgm.value)
+      ctx.font = `700 ${(text.length > 2 ? 9 : 10.5) * dpr}px Inter, system-ui, sans-serif`
+      ctx.beginPath()
+      ctx.arc(cx, cy, BADGE_R * dpr, 0, Math.PI * 2)
+      ctx.fillStyle = shade(kind, sgm.value)
+      ctx.fill()
+      ctx.lineWidth = 1.5 * dpr
+      ctx.strokeStyle = cssVar('--c-chart')
+      ctx.stroke()
+      ctx.fillStyle = '#111318'
+      ctx.fillText(text, cx, cy + 0.5 * dpr)
+    })
+  }
+  ctx.restore()
+}
+
+// ── Dry End / FC start / Second Crack as points on the BT curve ──
+
+const BT_POINTS = ['DRY', 'FCs', 'SC'] as const
+
+function drawBtPoints(u: uPlot, o: ChartOverlay) {
+  const ctx = u.ctx
+  const dpr = devicePixelRatio
+  const { left, top, width } = u.bbox
+  ctx.save()
+  ctx.font = `600 ${11 * dpr}px Inter, system-ui, sans-serif`
+  ctx.textBaseline = 'middle'
+  for (const type of BT_POINTS) {
+    const e = findEvent(o.events, type)
+    if (!e || e.bt == null) continue
+    const x = u.valToPos(e.t, 'x', true)
+    const y = u.valToPos(e.bt, 'temp', true)
+    if (x < left || x > left + width) continue
+    // point
+    ctx.beginPath()
+    ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2)
+    ctx.fillStyle = cssVar('--curve-bt')
+    ctx.fill()
+    ctx.lineWidth = 2 * dpr
+    ctx.strokeStyle = cssVar('--c-chart')
+    ctx.stroke()
+    // label: name, roast time and temperature – above-left of the point (BT rises to the right)
+    const time = o.chargeT === null ? '' : ` ${fmtTime(e.t - o.chargeT)}`
+    const label = `${EVENT_SHORT[e.type]}${time} · ${e.bt.toFixed(1)}°`
+    const w = ctx.measureText(label).width + 12 * dpr
+    const h = 20 * dpr
+    let bx = x - w - 8 * dpr
+    let by = y - h - 8 * dpr
+    if (bx < left) bx = x + 8 * dpr
+    if (by < top) by = y + 8 * dpr
+    ctx.fillStyle = cssVar('--chart-label-bg')
+    ctx.strokeStyle = cssVar('--curve-bt')
+    ctx.lineWidth = 1 * dpr
+    ctx.beginPath()
+    ctx.roundRect(bx, by, w, h, 6 * dpr)
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = cssVar('--chart-label')
+    ctx.fillText(label, bx + 6 * dpr, by + h / 2 + 0.5 * dpr)
   }
   ctx.restore()
 }

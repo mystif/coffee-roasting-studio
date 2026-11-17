@@ -29,11 +29,12 @@ export interface RoastState {
 }
 
 export const CONTROL_LIMITS: Record<ControlKind, { min: number; max: number; step: number }> = {
-  gas: { min: 0, max: 6, step: 0.5 }, // propane 2–6 kPa per rating plate
+  gas: { min: 2, max: 6, step: 0.5 }, // propane 2–6 kPa per rating plate
   air: { min: 0, max: 100, step: 5 },
   drum: { min: 0, max: 100, step: 5 },
 }
 export const AIR_PRESETS = [25, 35, 50, 65, 75] // labels around the Hot Air knob
+export const GAS_PRESETS = [2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6] // kPa, rating plate range
 
 /** Changes of the same control within this window are merged into one record. */
 const MERGE_SEC = 3
