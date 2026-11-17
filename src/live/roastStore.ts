@@ -13,6 +13,8 @@ export interface RoastState {
   coffee: string
   coffeeId: string | null
   reference: RefChoice | null
+  /** charge temperature for the preheat alert (null = take it from the reference) */
+  chargeTarget: number | null
   greenWeightG: number | null
   roastedWeightG: number | null
   notes: string
@@ -45,6 +47,7 @@ const initial = (): RoastState => ({
   coffee: '',
   coffeeId: null,
   reference: null,
+  chargeTarget: null,
   greenWeightG: null,
   roastedWeightG: null,
   notes: '',
@@ -80,6 +83,7 @@ export class RoastStore {
       coffee: meta.coffee,
       coffeeId: meta.coffeeId ?? null,
       reference: meta.reference !== undefined ? meta.reference : this.state.reference,
+      chargeTarget: this.state.chargeTarget,
       greenWeightG: meta.greenWeightG,
       current: this.state.current,
       startT: now,
@@ -156,7 +160,7 @@ export class RoastStore {
     this.set({ status: 'finished' })
   }
 
-  update(patch: Partial<Pick<RoastState, 'roastedWeightG' | 'notes' | 'coffee' | 'coffeeId' | 'greenWeightG' | 'savedId' | 'reference'>>) {
+  update(patch: Partial<Pick<RoastState, 'roastedWeightG' | 'notes' | 'coffee' | 'coffeeId' | 'greenWeightG' | 'savedId' | 'reference' | 'chargeTarget'>>) {
     this.set(patch)
   }
 
@@ -168,9 +172,9 @@ export class RoastStore {
 
   /** Back to "ready", keeping coffee, weight and control positions as defaults. */
   newRoast() {
-    const { coffee, coffeeId, greenWeightG, current, reference } = this.state
+    const { coffee, coffeeId, greenWeightG, current, reference, chargeTarget } = this.state
     this.undoStack = []
-    this.set({ ...initial(), coffee, coffeeId, greenWeightG, current, reference })
+    this.set({ ...initial(), coffee, coffeeId, greenWeightG, current, reference, chargeTarget })
   }
 
   /** Pre-fills the next roast (e.g. "duplicate as new"). Ignored while roasting. */
@@ -180,6 +184,7 @@ export class RoastStore {
     greenWeightG: number | null
     current?: Partial<Record<ControlKind, number>>
     reference?: RefChoice | null
+    chargeTarget?: number | null
   }) {
     if (this.state.status === 'roasting') return false
     this.undoStack = []
@@ -189,6 +194,7 @@ export class RoastStore {
       coffeeId: meta.coffeeId,
       greenWeightG: meta.greenWeightG,
       reference: meta.reference ?? null,
+      chargeTarget: meta.chargeTarget ?? null,
       // only defined values override the current positions
       current: {
         ...this.state.current,

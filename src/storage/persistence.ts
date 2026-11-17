@@ -41,13 +41,13 @@ export async function initPersistence() {
 }
 
 /** Coffee, weight, reference and control positions chosen for the next roast survive a reload. */
-type Prep = Pick<RoastState, 'coffee' | 'coffeeId' | 'greenWeightG' | 'reference' | 'current'>
+type Prep = Pick<RoastState, 'coffee' | 'coffeeId' | 'greenWeightG' | 'reference' | 'current' | 'chargeTarget'>
 let prepTimer: ReturnType<typeof setTimeout> | null = null
 function savePrep() {
   if (prepTimer) clearTimeout(prepTimer)
   prepTimer = setTimeout(() => {
-    const { coffee, coffeeId, greenWeightG, reference, current } = roast.getSnapshot()
-    void setSetting('prep', { coffee, coffeeId, greenWeightG, reference, current } satisfies Prep)
+    const { coffee, coffeeId, greenWeightG, reference, current, chargeTarget } = roast.getSnapshot()
+    void setSetting('prep', { coffee, coffeeId, greenWeightG, reference, current, chargeTarget } satisfies Prep)
   }, 500)
 }
 

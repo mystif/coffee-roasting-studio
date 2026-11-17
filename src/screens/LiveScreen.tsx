@@ -20,6 +20,7 @@ import { referenceState } from '../live/referenceState'
 import { estimates, useFcTarget } from '../live/estimates'
 import { MoreMenu, NavTabs } from '../ui/nav'
 import { DELETE, askNote } from '../ui/dialog'
+import { ChargeAlert } from '../ui/ChargeAlert'
 import { ThemeToggle } from '../ui/theme'
 import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
 
@@ -58,6 +59,7 @@ export function LiveScreen() {
   const roastTime = now === null ? null : charge ? (drop?.t ?? now) - charge.t : state.startT !== null ? now - state.startT : null
 
   const ref = referenceState.use()
+  const refChargeBT = ref.curve ? (findEvent(ref.curve.events, 'CHARGE')?.bt ?? null) : null
   const fcTarget = useFcTarget(state, ref.curve)
   const est = useMemo(() => estimates(snap, state, fcTarget), [snap, state, fcTarget.target, fcTarget.basis]) // eslint-disable-line react-hooks/exhaustive-deps
   const overlay: ChartOverlay = useMemo(
@@ -164,6 +166,13 @@ export function LiveScreen() {
         </div>
       )}
 
+      {!charge && state.status !== 'finished' && snap.source !== 'replay' && (state.chargeTarget !== null || ref.curve || conn !== 'idle') && (
+        <ChargeAlert
+          bt={bt}
+          target={state.chargeTarget ?? refChargeBT}
+          fromReference={state.chargeTarget === null && refChargeBT !== null}
+        />
+      )}
       <div className={`grid grid-cols-4 gap-3 ${stale ? 'opacity-50' : ''}`}>
         <Readout label="BT" value={bt} unit="°C" color={CURVE_COLORS.bt} />
         <Readout label="ET" value={et} unit="°C" color={CURVE_COLORS.et} />
