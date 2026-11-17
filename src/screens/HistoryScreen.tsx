@@ -5,6 +5,9 @@ import { ImportDialog, readAlogFiles } from '../ui/ImportDialog'
 import { download, exportAll, importAll } from '../io/exportFiles'
 import { flushBackups } from '../storage/backup'
 import { db } from '../storage/db'
+import { createProfileFromRoast } from '../storage/profiles'
+import { findEvent } from '../domain/events'
+import type { RoastRecord } from '../storage/roastRecord'
 import { fmtDate, fmtKg, roastSummary } from '../storage/roastQueries'
 import { fmtTime } from '../ui/LiveChart'
 import { Page, go, inputCls } from '../ui/nav'
@@ -19,7 +22,25 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
   const [importRows, setImportRows] = useState<Awaited<ReturnType<typeof readAlogFiles>> | null>(null)
   const [notice, setNotice] = useState('')
   const [picked, setPicked] = useState<string[]>([])
-  const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id].slice(-8)))
+  const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
+  const profiled = useLiveQuery(async () => new Set((await db.profiles.toArray()).map((p) => p.fromRoastId)), [])
+  /** One click: roast → profile with the default name (renamable in Profily). Skips roasts without CHARGE or already saved. */
+  const saveProfiles = async (list: RoastRecord[]) => {
+    let made = 0
+    let skipped = 0
+    for (const r of list) {
+      if (!findEvent(r.events, 'CHARGE') || profiled?.has(r.id)) skipped++
+      else {
+        await createProfileFromRoast(r)
+        made++
+      }
+    }
+    setNotice(
+      made
+        ? `Uloženo ${made} ${made === 1 ? 'profil' : made < 5 ? 'profily' : 'profilů'}${skipped ? ` (${skipped} přeskočeno – už jsou profilem nebo nemají Charge)` : ''}. ${made === 1 ? 'Najdeš ho' : 'Najdeš je'} v záložce Profily.`
+        : 'Nic nového – vybraná pražení už jsou profilem nebo nemají Charge.',
+    )
+  }
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -47,9 +68,19 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
           </select>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Hledat v názvu a poznámkách" className={`${inputCls} w-64`} />
           {picked.length > 0 && (
-            <ClayButton variant="primary" onClick={() => go(`#/analyza?ids=${picked.join(',')}`)} disabled={picked.length < 2}>
-              Porovnat ({picked.length})
-            </ClayButton>
+            <>
+              <ClayButton onClick={() => void saveProfiles((roasts ?? []).filter((r) => picked.includes(r.id)))} title="Každé vybrané pražení uloží jako referenční profil">
+                Uložit jako profily ({picked.length})
+              </ClayButton>
+              <ClayButton
+                variant="primary"
+                onClick={() => go(`#/analyza?ids=${picked.slice(0, 8).join(',')}`)}
+                disabled={picked.length < 2}
+                title={picked.length > 8 ? 'Porovná se prvních 8 vybraných' : undefined}
+              >
+                Porovnat ({Math.min(picked.length, 8)})
+              </ClayButton>
+            </>
           )}
           <ClayButton onClick={() => fileInput.current?.click()} title="Vyber jeden nebo více souborů .alog">
             Importovat z Artisanu
@@ -97,6 +128,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
               <th className="px-3 text-right font-normal">DTR</th>
               <th className="px-3 text-right font-normal">Hodn.</th>
               <th className="px-3 text-right font-normal">Záloha</th>
+              <th className="px-3 text-right font-normal">Profil</th>
             </tr>
           </thead>
           <tbody>
@@ -124,6 +156,23 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
                   <td className="text-right">{s.dtr == null ? '—' : `${s.dtr.toFixed(1)} %`}</td>
                   <td className="text-right">{r.rating ?? '—'}</td>
                   <td className="text-right">{r.backedUp ? <span className="text-emerald-400">✓</span> : <span className="text-amber-300">čeká</span>}</td>
+                  <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                    {profiled?.has(r.id) ? (
+                      <a href="#/profily" className="text-xs font-semibold text-emerald-300 hover:underline" title="Už je uložené jako profil">
+                        ✓ profil
+                      </a>
+                    ) : findEvent(r.events, 'CHARGE') ? (
+                      <button
+                        onClick={() => void saveProfiles([r])}
+                        className="whitespace-nowrap rounded-lg bg-[var(--c-raised)] px-2.5 py-1 text-xs font-semibold text-zinc-200 shadow-[0_2px_6px_var(--sh)] hover:text-zinc-100"
+                        title="Uložit jako referenční profil (název můžeš změnit v Profilech)"
+                      >
+                        + profil
+                      </button>
+                    ) : (
+                      <span className="text-xs text-zinc-500" title="Bez Charge nelze zarovnat">—</span>
+                    )}
+                  </td>
                 </tr>
               )
             })}
