@@ -147,7 +147,7 @@ export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: n
     ) : null
   const seg = (name: 'drying' | 'maillard' | 'development', sec: number | null, pct: number | null, estimate?: import('../live/estimates').Estimate) => (
     <div
-      className="flex min-w-0 items-center justify-between gap-2 rounded-xl px-3 py-1.5"
+      className="flex min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-0.5"
       style={{
         flexGrow: Math.max(pct ?? 0, 8),
         background: PHASE_COLOR[name] + (phase === name ? '33' : '1a'),
@@ -160,15 +160,15 @@ export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: n
       {sec == null && estimate ? (
         hint(estimate)
       ) : (
-        <span className="text-sm font-semibold tabular-nums text-zinc-100">
+        <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-zinc-100">
           {sec == null ? '—' : fmtTime(sec)} <span className="text-zinc-400">{pct == null ? '' : `${pct.toFixed(0)} %`}</span>
         </span>
       )}
     </div>
   )
   return (
-    <div className={`${CARD} flex items-center gap-3 px-3 py-2`}>
-      <div className="flex min-w-0 flex-1 gap-1.5">
+    <div className="flex items-center gap-3 pb-1">
+      <div className="flex min-w-0 flex-1 gap-1">
         {seg('drying', stats?.drying ?? null, stats?.dryingPct ?? null)}
         {seg('maillard', stats?.maillard ?? null, stats?.maillardPct ?? null, estDE)}
         {seg('development', stats?.development ?? null, stats?.developmentPct ?? null, estFC)}
@@ -185,9 +185,9 @@ export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: n
 
 function Mini({ label, value, title }: { label: string; value: string; title?: string }) {
   return (
-    <div className="w-24 text-right" title={title}>
-      <div className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</div>
-      <div className="text-2xl font-semibold tabular-nums">{value}</div>
+    <div className="flex items-baseline gap-1.5 whitespace-nowrap" title={title}>
+      <span className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</span>
+      <span className="text-lg font-semibold tabular-nums">{value}</span>
     </div>
   )
 }

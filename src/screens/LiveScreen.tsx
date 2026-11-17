@@ -152,14 +152,16 @@ export function LiveScreen() {
         />
       </div>
 
-      <PhaseStrip state={state} now={now} est={est} />
       {ref.missing && <p className="text-xs text-amber-300">Vybraná reference už neexistuje.</p>}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <div className="relative min-w-0 flex-1 rounded-3xl bg-[var(--c-chart)] p-3 shadow-[inset_0_2px_10px_var(--sh-in)]">
-          <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} />
+        <div className="relative flex min-w-0 flex-1 flex-col rounded-3xl bg-[var(--c-chart)] p-3 pt-2 shadow-[inset_0_2px_10px_var(--sh-in)]">
+          <PhaseStrip state={state} now={now} est={est} />
+          <div className="relative min-h-0 flex-1">
+            <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} />
+          </div>
           {!follow && state.status !== 'finished' && (
-            <ClayButton className="absolute right-6 top-5" onClick={() => setFollow(true)}>
+            <ClayButton className="absolute right-6 top-14" onClick={() => setFollow(true)}>
               Sledovat živě
             </ClayButton>
           )}
@@ -169,7 +171,7 @@ export function LiveScreen() {
             </p>
           )}
           {ref.curve && !charge && (
-            <p className="pointer-events-none absolute left-16 top-10 rounded-lg bg-[var(--c-chart)]/90 px-2 py-1 text-xs text-zinc-400">
+            <p className="pointer-events-none absolute left-16 top-14 rounded-lg bg-[var(--c-chart)]/90 px-2 py-1 text-xs text-zinc-400">
               Náhled reference – čas 0:00 = Charge. Po Charge se křivky zarovnají a začne porovnávání.
             </p>
           )}
