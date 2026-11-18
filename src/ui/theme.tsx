@@ -41,7 +41,7 @@ export const displayState = createStore({ display: storedDisplay() })
 /** Scale of the chart's texts, badges and lanes. */
 export const chartScale = () => (displayState.get().display === 'large' ? 1.5 : 1)
 /** The gas/air/drum lanes under the chart get even bigger badges on the large monitor. */
-export const laneScale = () => (displayState.get().display === 'large' ? 2 : 1)
+export const laneScale = () => (displayState.get().display === 'large' ? 1.6 : 1)
 const applyDisplay = (d: Display) => {
   if (typeof document !== 'undefined') document.documentElement.dataset.display = d
 }

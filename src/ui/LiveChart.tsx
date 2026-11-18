@@ -405,11 +405,11 @@ function drawReference(u: uPlot, o: ChartOverlay) {
 
 // lanes sit below the time axis (outside the plot), compact
 const X_AXIS_SIZE = 26 // px reserved for the time labels
-const LANE_PITCH = 15 // px (badge Ø 13 px)
-const BAR_H = 6
-const BADGE_R = 6.5
-const PLAN_BAR_H = 4
-const PLAN_BADGE_R = 6
+const LANE_PITCH = 21 // px per lane (value box 16 px high)
+const LINE_W = 2 // your setting: solid line
+const PLAN_LINE_W = 1.5 // reference plan: dashed line
+const BOX_H = 16
+const BOX_FONT = 11
 
 /** Room needed under the time axis for the gas/air/drum lanes (css px). */
 const lanesSpace = (o: ChartOverlay) => {
@@ -456,74 +456,71 @@ function drawControlBars(u: uPlot, o: ChartOverlay) {
   const dpr = devicePixelRatio * laneScale()
   const { left, width } = u.bbox
   ctx.save()
+  ctx.lineCap = 'round'
   ls.forEach((lane, i) => {
-    const h = (lane.plan ? PLAN_BAR_H : BAR_H) * dpr
+    const y = laneY(u, i)
     for (const sgm of lane.segs) {
       const x0 = Math.max(left, u.valToPos(sgm.from, 'x', true))
       const x1 = Math.min(left + width, u.valToPos(sgm.to, 'x', true))
       if (x1 <= x0) continue
-      const y = laneY(u, i) - h / 2
-      ctx.fillStyle = shade(sgm.kind, sgm.value, lane.plan ? 0.3 : 0.55)
+      ctx.strokeStyle = shade(sgm.kind, sgm.value, lane.plan ? 0.75 : 0.95)
+      ctx.lineWidth = (lane.plan ? PLAN_LINE_W : LINE_W) * dpr
+      ctx.setLineDash(lane.plan ? [4 * dpr, 3 * dpr] : [])
       ctx.beginPath()
-      ctx.roundRect(x0, y, x1 - x0, h, 3 * dpr)
-      ctx.fill()
-      if (lane.plan) {
-        ctx.setLineDash([3 * dpr, 3 * dpr])
-        ctx.strokeStyle = shade(sgm.kind, sgm.value, 0.8)
-        ctx.lineWidth = dpr
-        ctx.stroke()
-        ctx.setLineDash([])
-      }
+      ctx.moveTo(x0, y)
+      ctx.lineTo(x1, y)
+      ctx.stroke()
     }
   })
   ctx.restore()
 }
 
+/** Value of each change in a rounded rectangle at the start of its line. */
 function drawControlBadges(u: uPlot, o: ChartOverlay) {
   const ls = lanes(o)
   if (!ls.length) return
   const ctx = u.ctx
   const dpr = devicePixelRatio * laneScale()
   const { left, width } = u.bbox
+  const h = BOX_H * dpr
   ctx.save()
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
+  ctx.font = `700 ${BOX_FONT * dpr}px Inter, system-ui, sans-serif`
   ls.forEach((lane, li) => {
-    const r = (lane.plan ? PLAN_BADGE_R : BADGE_R) * dpr
-    const xs = lane.segs.map((x) => Math.max(left + r, u.valToPos(x.from, 'x', true) + r))
-    const show = visibleBadges(xs, 2 * r + 2 * dpr)
+    const texts = lane.segs.map((x) => formatControl(x.kind, x.value))
+    const ws = texts.map((t) => Math.max(ctx.measureText(t).width + 8 * dpr, h * 1.3))
+    const xs = lane.segs.map((x) => Math.max(left, u.valToPos(x.from, 'x', true)))
+    const show = visibleBadges(xs, Math.max(...ws) + 2 * dpr)
     const cy = laneY(u, li)
     lane.segs.forEach((sgm, i) => {
-      const cx = xs[i]
-      if (!show[i] || cx > left + width) return
-      const text = formatControl(sgm.kind, sgm.value)
-      ctx.font = `700 ${(text.length > 2 ? 6.5 : 7.5) * dpr}px Inter, system-ui, sans-serif`
+      const x = Math.min(xs[i], left + width - ws[i])
+      if (!show[i] || xs[i] > left + width) return
       ctx.beginPath()
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      ctx.roundRect(x, cy - h / 2, ws[i], h, 4 * dpr)
       if (lane.plan) {
-        // plan: light badge with a coloured ring, text in the normal label colour (readable in both themes)
+        // plan: tinted box with a coloured border, text in the normal label colour (readable in both themes)
         ctx.fillStyle = cssVar('--c-chart')
         ctx.fill()
-        ctx.fillStyle = shade(sgm.kind, sgm.value, 0.35)
+        ctx.fillStyle = shade(sgm.kind, sgm.value, 0.3)
         ctx.fill()
-        ctx.lineWidth = 1.5 * dpr
+        ctx.lineWidth = 1.25 * dpr
+        ctx.setLineDash([3 * dpr, 2 * dpr])
         ctx.strokeStyle = shade(sgm.kind, sgm.value)
         ctx.stroke()
+        ctx.setLineDash([])
         ctx.fillStyle = cssVar('--chart-label')
       } else {
         ctx.fillStyle = shade(sgm.kind, sgm.value)
         ctx.fill()
-        ctx.lineWidth = 1.5 * dpr
-        ctx.strokeStyle = cssVar('--c-chart')
-        ctx.stroke()
         ctx.fillStyle = textOn(sgm.kind, sgm.value)
       }
-      ctx.fillText(text, cx, cy + 0.5 * dpr)
+      ctx.fillText(texts[i], x + ws[i] / 2, cy + 0.5 * dpr)
     })
   })
   // lane captions left of the plot (under the temperature axis)
   ctx.textAlign = 'right'
-  ctx.font = `600 ${8.5 * devicePixelRatio * chartScale()}px Inter, system-ui, sans-serif` // must fit under the temperature axis
+  ctx.font = `600 ${9.5 * devicePixelRatio * chartScale()}px Inter, system-ui, sans-serif` // must fit under the temperature axis
   const name = { gas: 'plyn', air: 'vzduch', drum: 'buben' } as const
   ls.forEach((lane, li) => {
     ctx.fillStyle = cssVar('--chart-axis')
