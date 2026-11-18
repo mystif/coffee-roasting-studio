@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { askConfirm } from './dialog'
 import { useEffect, useState } from 'react'
-import { GAS_KG_PER_HOUR, fmtDuration, gasKg, msSinceReset } from '../domain/daySession'
+import { BOTTLE_KG, GAS_KG_PER_HOUR, bottleLevel, fmtDuration, gasKg, msSinceReset } from '../domain/daySession'
 import { dayState, resetBottle, startDay, stopDay } from '../live/dayState'
 import { db } from '../storage/db'
 
@@ -9,13 +9,16 @@ const kg = (x: number) => `${x.toFixed(2).replace('.', ',')} kg`
 const dávky = (n: number) => (n === 1 ? '1 dávka' : n >= 2 && n <= 4 ? `${n} dávky` : `${n} dávek`)
 
 const bottleTitle = (since: number | null | undefined) =>
-  `Celkem od výměny láhve${since ? ` (${new Date(since).toLocaleDateString('cs-CZ')} ${new Date(since).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })})` : ''} – odhad ${GAS_KG_PER_HOUR} kg/h provozu`
+  `Celkem od výměny láhve${since ? ` (${new Date(since).toLocaleDateString('cs-CZ')} ${new Date(since).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })})` : ''} – odhad ${GAS_KG_PER_HOUR} kg/h provozu, láhev ${BOTTLE_KG} kg (zelená < 6 kg, žlutá 6–7 kg, červená od 7 kg)`
+
+const LEVEL_COLOR = { ok: 'text-emerald-400', low: 'text-amber-400', empty: 'text-rose-400' } as const
 
 /** Totals since the last gas-bottle change, with a reset for a new bottle. */
 function Bottle({ ms, since }: { ms: number; since: number | null | undefined }) {
   return (
     <span className="flex items-center gap-1 text-[0.625rem] text-zinc-500" title={bottleTitle(since)}>
-      láhev <span className="tabular-nums text-zinc-400">{fmtDuration(ms)}</span> · <span className="tabular-nums text-zinc-400">{kg(gasKg(ms))}</span>
+      láhev <span className="tabular-nums text-zinc-400">{fmtDuration(ms)}</span> ·{' '}
+      <b className={`tabular-nums ${LEVEL_COLOR[bottleLevel(gasKg(ms))]}`}>{kg(gasKg(ms)).replace(' kg', '')}</b> / {BOTTLE_KG} kg
       <button
         className="rounded-md px-1 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
         title="Vyměnil jsem láhev – vynulovat celkový čas a spotřebu"

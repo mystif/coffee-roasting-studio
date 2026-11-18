@@ -62,3 +62,13 @@ export function msSinceReset(resetAt: number | null, days: { startedAt: number; 
   const part = (a: number, b: number) => Math.max(0, b - Math.max(a, from))
   return days.reduce((sum, d) => sum + part(d.startedAt, d.stoppedAt), 0) + (running ? part(running.startedAt, now) : 0)
 }
+
+/** The user's propane bottles hold 10 kg. */
+export const BOTTLE_KG = 10
+
+/** Colour of the bottle's used gas: green below 6 kg, yellow 6–7 kg, red from 7 kg (only a colour, no alert). */
+export function bottleLevel(usedKg: number): 'ok' | 'low' | 'empty' {
+  if (usedKg < 6) return 'ok'
+  if (usedKg < 7) return 'low'
+  return 'empty'
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { detectHeatStart, fmtDuration, gasKg, msSinceReset } from './daySession'
+import { bottleLevel, detectHeatStart, fmtDuration, gasKg, msSinceReset } from './daySession'
 
 const series = (vals: number[]) => ({ t: vals.map((_, i) => i * 2), et: vals })
 
@@ -38,4 +38,8 @@ describe('gas bottle totals', () => {
     expect(msSinceReset(20.5 * H, days, { startedAt: 20 * H }, 21 * H)).toBe(0.5 * H)
     expect(msSinceReset(30 * H, days, null, 30 * H)).toBe(0)
   })
+})
+
+it('colours the used gas of a 10 kg bottle', () => {
+  expect([0, 5.99, 6, 6.99, 7, 10].map(bottleLevel)).toEqual(['ok', 'ok', 'low', 'low', 'empty', 'empty'])
 })
