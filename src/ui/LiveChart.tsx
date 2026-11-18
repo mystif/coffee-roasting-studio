@@ -6,6 +6,7 @@ import { EVENT_SHORT, findEvent, type ControlChange, type ControlKind, type Roas
 import { PHASE_COLOR } from '../domain/phases'
 import type { ReferenceCurve } from '../domain/reference'
 import { cssVar, themeState } from './theme'
+import { rorProjection } from '../domain/predict'
 import { controlSegments, formatControl, shade, textOn, visibleBadges, type Segment } from './chartMarks'
 
 /** For DOM elements (theme-aware CSS variables). The canvas reads the resolved values via cssVar. */
@@ -272,10 +273,11 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
   const dpr = devicePixelRatio
   const { top, height, left, width } = u.bbox
   ctx.save()
-  ctx.font = `${600} ${11 * dpr}px Inter, system-ui, sans-serif`
+  ctx.font = `700 ${13 * dpr}px Inter, system-ui, sans-serif`
   ctx.textBaseline = 'top'
-  // events: dashed vertical line + label with temperature
-  for (const e of o.events) {
+  // events: dashed vertical line + label with temperature; a label that would overlap the previous one goes a row lower
+  const rowEnd: number[] = []
+  for (const e of [...o.events].sort((p, q) => p.t - q.t)) {
     const x = u.valToPos(e.t, 'x', true)
     if (x < left || x > left + width) continue
     ctx.strokeStyle = cssVar('--chart-event-line')
@@ -288,13 +290,18 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.setLineDash([])
     if (e.type === 'CUSTOM') continue // notes are labelled on the BT curve (drawNotes)
     const label = `${EVENT_SHORT[e.type]}${e.bt != null ? ' ' + e.bt.toFixed(1) + '°' : ''}`
-    const w = ctx.measureText(label).width + 8 * dpr
+    const w = ctx.measureText(label).width + 10 * dpr
+    let row = 0
+    while ((rowEnd[row] ?? -Infinity) > x + 3 * dpr) row++
+    rowEnd[row] = x + 3 * dpr + w + 4 * dpr
+    const y = top + (4 + row * 22) * dpr
     ctx.fillStyle = cssVar('--chart-label-bg')
-    ctx.fillRect(x + 3 * dpr, top + 4 * dpr, w, 16 * dpr)
+    ctx.fillRect(x + 3 * dpr, y, w, 19 * dpr)
     ctx.fillStyle = e.auto ? cssVar('--chart-label-auto') : cssVar('--chart-label')
-    ctx.fillText(label, x + 7 * dpr, top + 6.5 * dpr)
+    ctx.fillText(label, x + 8 * dpr, y + 3 * dpr)
   }
   drawControlBadges(u, o)
+  drawRorProjection(u, o)
   drawBtPoints(u, o)
   drawNotes(u, o)
   drawRefPoints(u, o)
@@ -483,7 +490,7 @@ function drawBtPoints(u: uPlot, o: ChartOverlay) {
   const dpr = devicePixelRatio
   const { left, top, width } = u.bbox
   ctx.save()
-  ctx.font = `600 ${11 * dpr}px Inter, system-ui, sans-serif`
+  ctx.font = `700 ${13.5 * dpr}px Inter, system-ui, sans-serif`
   ctx.textBaseline = 'middle'
   for (const type of BT_POINTS) {
     const e = findEvent(o.events, type)
@@ -493,7 +500,7 @@ function drawBtPoints(u: uPlot, o: ChartOverlay) {
     if (x < left || x > left + width) continue
     // point
     ctx.beginPath()
-    ctx.arc(x, y, 5 * dpr, 0, Math.PI * 2)
+    ctx.arc(x, y, 6 * dpr, 0, Math.PI * 2)
     ctx.fillStyle = cssVar('--curve-bt')
     ctx.fill()
     ctx.lineWidth = 2 * dpr
@@ -502,21 +509,21 @@ function drawBtPoints(u: uPlot, o: ChartOverlay) {
     // label: name, roast time and temperature – above-left of the point (BT rises to the right)
     const time = o.chargeT === null ? '' : ` ${fmtTime(e.t - o.chargeT)}`
     const label = `${EVENT_SHORT[e.type]}${time} · ${e.bt.toFixed(1)}°`
-    const w = ctx.measureText(label).width + 12 * dpr
-    const h = 20 * dpr
+    const w = ctx.measureText(label).width + 14 * dpr
+    const h = 25 * dpr
     let bx = x - w - 8 * dpr
     let by = y - h - 8 * dpr
     if (bx < left) bx = x + 8 * dpr
     if (by < top) by = y + 8 * dpr
     ctx.fillStyle = cssVar('--chart-label-bg')
     ctx.strokeStyle = cssVar('--curve-bt')
-    ctx.lineWidth = 1 * dpr
+    ctx.lineWidth = 1.5 * dpr
     ctx.beginPath()
-    ctx.roundRect(bx, by, w, h, 6 * dpr)
+    ctx.roundRect(bx, by, w, h, 7 * dpr)
     ctx.fill()
     ctx.stroke()
     ctx.fillStyle = cssVar('--chart-label')
-    ctx.fillText(label, bx + 6 * dpr, by + h / 2 + 0.5 * dpr)
+    ctx.fillText(label, bx + 7 * dpr, by + h / 2 + 0.5 * dpr)
   }
   ctx.restore()
 }
@@ -528,7 +535,7 @@ function drawEstimates(u: uPlot, o: ChartOverlay) {
   const dpr = devicePixelRatio
   const { left, top, width, height } = u.bbox
   ctx.save()
-  ctx.font = `italic 600 ${11 * dpr}px Inter, system-ui, sans-serif`
+  ctx.font = `italic 700 ${13 * dpr}px Inter, system-ui, sans-serif`
   ctx.textBaseline = 'top'
   for (const e of o.estimates) {
     const x = u.valToPos(e.t, 'x', true)
@@ -539,7 +546,7 @@ function drawEstimates(u: uPlot, o: ChartOverlay) {
     ctx.setLineDash([2 * dpr, 4 * dpr])
     ctx.lineWidth = 1.5 * dpr
     ctx.beginPath()
-    ctx.moveTo(x, top + 24 * dpr)
+    ctx.moveTo(x, top + 28 * dpr)
     ctx.lineTo(x, top + height)
     ctx.stroke()
     ctx.setLineDash([])
@@ -549,12 +556,12 @@ function drawEstimates(u: uPlot, o: ChartOverlay) {
     ctx.stroke()
     ctx.globalAlpha = 1
     const label = `~${EVENT_SHORT[e.type]} ${o.chargeT === null ? '' : fmtTime(e.t - o.chargeT)}`
-    const w = ctx.measureText(label).width + 10 * dpr
+    const w = ctx.measureText(label).width + 12 * dpr
     const bx = Math.min(x + 4 * dpr, left + width - w)
     ctx.fillStyle = cssVar('--chart-label-bg')
-    ctx.fillRect(bx, top + 26 * dpr, w, 17 * dpr)
+    ctx.fillRect(bx, top + 28 * dpr, w, 20 * dpr)
     ctx.fillStyle = cssVar('--chart-label-auto')
-    ctx.fillText(label, bx + 5 * dpr, top + 29 * dpr)
+    ctx.fillText(label, bx + 6 * dpr, top + 31.5 * dpr)
   }
   ctx.restore()
 }
@@ -570,7 +577,7 @@ function drawRefPoints(u: uPlot, o: ChartOverlay) {
   const dpr = devicePixelRatio
   const { left, top, width, height } = u.bbox
   ctx.save()
-  ctx.font = `600 ${10.5 * dpr}px Inter, system-ui, sans-serif`
+  ctx.font = `600 ${12.5 * dpr}px Inter, system-ui, sans-serif`
   ctx.textBaseline = 'middle'
   for (const type of REF_POINTS) {
     const e = findEvent(ref.events, type)
@@ -589,8 +596,8 @@ function drawRefPoints(u: uPlot, o: ChartOverlay) {
     // label below-right (live labels sit above-left), time for all but CHARGE
     const time = type === 'CHARGE' ? '' : ` ${fmtTime(e.t)}`
     const label = `ref ${EVENT_SHORT[type]}${time} · ${e.bt.toFixed(1)}°`
-    const w = ctx.measureText(label).width + 12 * dpr
-    const h = 18 * dpr
+    const w = ctx.measureText(label).width + 14 * dpr
+    const h = 22 * dpr
     let bx = x + 8 * dpr
     let by = y + 8 * dpr
     if (bx + w > left + width) bx = x - w - 8 * dpr
@@ -605,7 +612,7 @@ function drawRefPoints(u: uPlot, o: ChartOverlay) {
     ctx.stroke()
     ctx.setLineDash([])
     ctx.fillStyle = cssVar('--chart-label-auto')
-    ctx.fillText(label, bx + 6 * dpr, by + h / 2 + 0.5 * dpr)
+    ctx.fillText(label, bx + 7 * dpr, by + h / 2 + 0.5 * dpr)
   }
   ctx.restore()
 }
@@ -618,7 +625,7 @@ function drawNotes(u: uPlot, o: ChartOverlay) {
   const dpr = devicePixelRatio
   const { left, top, width } = u.bbox
   ctx.save()
-  ctx.font = `600 ${11 * dpr}px Inter, system-ui, sans-serif`
+  ctx.font = `600 ${13 * dpr}px Inter, system-ui, sans-serif`
   ctx.textBaseline = 'middle'
   for (const e of notes) {
     const x = u.valToPos(e.t, 'x', true)
@@ -633,8 +640,8 @@ function drawNotes(u: uPlot, o: ChartOverlay) {
     ctx.stroke()
     const time = o.chargeT === null ? '' : `${fmtTime(e.t - o.chargeT)} · `
     const text = `★ ${time}${(e.note || 'poznámka').slice(0, 40)}`
-    const w = ctx.measureText(text).width + 12 * dpr
-    const h = 20 * dpr
+    const w = ctx.measureText(text).width + 14 * dpr
+    const h = 24 * dpr
     let bx = x - w / 2
     let by = y - h - 12 * dpr
     bx = Math.min(Math.max(bx, left), left + width - w)
@@ -649,5 +656,41 @@ function drawNotes(u: uPlot, o: ChartOverlay) {
     ctx.fillStyle = cssVar('--chart-label')
     ctx.fillText(text, bx + 6 * dpr, by + h / 2 + 0.5 * dpr)
   }
+  ctx.restore()
+}
+
+// ── RoR projection: thin dotted continuation of the RoR curve (estimate, not a measurement) ──
+function drawRorProjection(u: uPlot, o: ChartOverlay) {
+  if (o.chargeT === null || findEvent(o.events, 'DROP')) return
+  const tp = findEvent(o.events, 'TP')
+  const t = u.data[0] as number[]
+  const ror = u.data[3] as (number | null)[]
+  const last = t.at(-1)
+  if (last === undefined || last < (tp?.t ?? o.chargeT + 90) + 60) return
+  // trend only in Maillard (where it was more accurate on the user's roasts), flat otherwise
+  const maillard = !!findEvent(o.events, 'DRY') && !findEvent(o.events, 'FCs')
+  const p = rorProjection(t, ror, maillard ? 0.5 : 0)
+  if (!p) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio
+  const x0 = u.valToPos(p.t0, 'x', true)
+  const y0 = u.valToPos(p.r0, 'ror', true)
+  const x1 = u.valToPos(p.t1, 'x', true)
+  const y1 = u.valToPos(p.r1, 'ror', true)
+  ctx.save()
+  ctx.strokeStyle = cssVar('--curve-ror')
+  ctx.globalAlpha = 0.8
+  ctx.lineWidth = 1.25 * dpr
+  ctx.setLineDash([1.5 * dpr, 3.5 * dpr])
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(x0, y0)
+  ctx.lineTo(x1, y1)
+  ctx.stroke()
+  ctx.setLineDash([])
+  ctx.font = `italic 600 ${11 * dpr}px Inter, system-ui, sans-serif`
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = cssVar('--curve-ror')
+  ctx.fillText(`~${p.r1.toFixed(1).replace('.', ',')}`, x1 + 4 * dpr, y1)
   ctx.restore()
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadRealRoast, realRoastNames } from '../testing/realRoasts'
 import { findEvent } from './events'
-import { DEFAULT_PREDICT, secondsToTemp } from './predict'
+import { DEFAULT_PREDICT, rorProjection, secondsToTemp } from './predict'
 import { computeRoR } from './ror'
 import { alogToRecord } from '../io/alogImport'
 
@@ -69,5 +69,21 @@ describe.skipIf(realRoastNames.length === 0)('prediction accuracy on real roasts
     expect(best.fc150).toBeLessThan(20)
     expect(best.fc2).toBeLessThan(10)
     expect(best.none).toBe(0)
+  })
+})
+
+describe('rorProjection', () => {
+  it('extends a damped recent RoR trend, stops at zero, or stays flat', () => {
+    const t = Array.from({ length: 100 }, (_, i) => i)
+    const p = rorProjection(t, t.map((x) => 20 - x * 0.05), 1, 60, 120)!
+    expect(p.t0).toBe(99)
+    expect(p.r0).toBeCloseTo(15.05, 6)
+    expect(p.r1).toBeCloseTo(15.05 - 6, 6)
+    expect(rorProjection(t, t.map((x) => 20 - x * 0.05), 0.5, 60, 60)!.r1).toBeCloseTo(15.05 - 1.5, 6)
+    const z = rorProjection(t, t.map((x) => 6 - x * 0.05), 1, 60, 120)!
+    expect(z.r1).toBe(0)
+    expect(z.t1 - z.t0).toBeCloseTo(1.05 / 0.05, 6)
+    expect(rorProjection(t, t.map((x) => 20 - x * 0.05), 0)!.r1).toBeCloseTo(15.05, 6)
+    expect(rorProjection([0, 1], [null, null])).toBeNull()
   })
 })

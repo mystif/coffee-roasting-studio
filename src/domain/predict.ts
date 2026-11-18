@@ -63,3 +63,28 @@ export function secondsToTemp(t: number[], bt: Num[], ror: Num[], target: number
   if (disc < 0) return null // RoR would reach zero before the target
   return (-R + Math.sqrt(disc)) / k
 }
+
+export interface RorProjection {
+  t0: number
+  r0: number
+  t1: number
+  r1: number
+}
+
+/**
+ * Where RoR is heading `horizonSec` ahead: from the last RoR value with `trendFactor` × the slope of
+ * the trailing `windowSec` (0 = stays flat), never below 0. A projection, not a measured value.
+ * On the user's 35 roasts (error 60 s ahead): Maillard 0.79 °C/min with 60 s × 0.5 vs 1.01 flat;
+ * before Dry End and after FC the flat line was best (1.79 / 2.01) – the trend made it worse.
+ */
+export function rorProjection(t: number[], ror: Num[], trendFactor = 0.5, windowSec = 60, horizonSec = 60): RorProjection | null {
+  const i = lastIndex(ror)
+  if (i < 0) return null
+  const slope = trendFactor ? rorSlope(t, ror, i, windowSec) : 0
+  if (slope === null) return null
+  const k = slope * trendFactor
+  const r0 = ror[i] as number
+  let dt = horizonSec
+  if (k < 0 && r0 + k * dt < 0) dt = Math.max(0, -r0 / k) // stop where it reaches 0
+  return { t0: t[i], r0, t1: t[i] + dt, r1: Math.max(0, r0 + k * dt) }
+}
