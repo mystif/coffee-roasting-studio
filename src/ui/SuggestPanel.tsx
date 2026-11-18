@@ -43,7 +43,7 @@ export function SuggestPanel({ coffee, onEdit }: { coffee: Coffee; onEdit?: () =
   }
 
   return (
-    <div className="grid gap-4 rounded-2xl bg-[var(--c-bg)] p-4">
+    <div className="grid gap-4 rounded-lg bg-[var(--c-bg)] p-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-0 flex-1">
           <p className="font-semibold">Návrh profilu pro první pražení · 3 kg zelené kávy</p>

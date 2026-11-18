@@ -127,7 +127,7 @@ function Detail({ r }: { r: RoastRecord }) {
             <Stat label="Charge BT" value={s.chargeBT == null ? '—' : `${s.chargeBT.toFixed(1)}°`} />
             <Stat label="Drop BT" value={s.dropBT == null ? '—' : `${s.dropBT.toFixed(1)}°`} />
           </div>
-          <div className="relative h-[28rem] rounded-3xl bg-[var(--c-chart)] p-3 shadow-[inset_0_2px_10px_var(--sh-in)]">
+          <div className="relative h-[28rem] rounded-xl bg-[var(--c-chart)] p-3 border border-[var(--c-border)]">
             <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} onReady={(u) => (chart.current = u)} />
           </div>
           <div className="flex items-center gap-2">
@@ -275,8 +275,8 @@ function EditPanel({ r, onDelete }: { r: RoastRecord; onDelete: () => void }) {
               key={n}
               onClick={() => setV({ ...v, rating: v.rating === n ? null : n })}
               className={`h-8 flex-1 rounded-lg text-sm font-semibold ${
-                v.rating !== null && n <= v.rating ? 'bg-amber-400 text-amber-950' : 'bg-[var(--c-bg)] text-zinc-400 hover:text-zinc-100'
-              }`}
+ v.rating !== null && n <= v.rating ? 'bg-amber-400 text-amber-950' : 'bg-[var(--c-bg)] text-zinc-400 hover:text-zinc-100'
+ }`}
             >
               {n}
             </button>
@@ -305,7 +305,7 @@ function EditPanel({ r, onDelete }: { r: RoastRecord; onDelete: () => void }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl bg-[var(--c-surface)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_10px_24px_var(--sh-soft)]">
+    <div className="rounded-xl bg-[var(--c-surface)] px-4 py-3 border border-[var(--c-border)]">
       <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">{label}</div>
       <div className="text-2xl font-semibold tabular-nums">{value}</div>
     </div>

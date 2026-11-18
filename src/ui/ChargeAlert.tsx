@@ -80,7 +80,7 @@ export function ChargeAlert({ bt, target, fromReference, ror }: { bt: number | n
 
   if (target === null)
     return (
-      <div className="flex items-center gap-3 rounded-2xl bg-[var(--c-surface)] px-4 py-1.5 text-sm text-zinc-400">
+      <div className="flex items-center gap-3 rounded-lg bg-[var(--c-surface)] px-4 py-1.5 text-sm text-zinc-400">
         Upozornění na teplotu vhozu:
         <button onClick={() => void edit()} className="font-semibold text-sky-300 underline">
           nastavit teplotu
@@ -105,7 +105,7 @@ export function ChargeAlert({ bt, target, fromReference, ror }: { bt: number | n
             : `Nahřívání · do vhozu zbývá ${(-diff!).toFixed(1)} °C${etaText}`
 
   return (
-    <div className={`flex items-center gap-4 rounded-2xl px-4 py-1.5 text-sm ${STYLE[level]}`}>
+    <div className={`flex items-center gap-4 rounded-lg px-4 py-1.5 text-sm ${STYLE[level]}`}>
       <span className={level === 'ready' ? 'text-lg font-bold tracking-wide' : 'font-semibold'}>{text}</span>
       <span className="text-zinc-400">
         cíl <b className="text-zinc-100">{target.toFixed(0)} °C</b>

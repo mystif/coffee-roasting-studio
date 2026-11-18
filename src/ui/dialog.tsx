@@ -65,7 +65,7 @@ export function DialogHost() {
       onMouseDown={(e) => e.target === e.currentTarget && cancel()}
       onKeyDown={(e) => e.key === 'Escape' && cancel()}
     >
-      <div className="w-full max-w-md rounded-3xl bg-[var(--c-surface)] p-6 shadow-[0_20px_60px_var(--sh)]" role="dialog" aria-modal="true">
+      <div className="w-full max-w-md rounded-xl bg-[var(--c-surface)] p-6 border border-[var(--c-border)] shadow-[0_16px_48px_var(--sh)]" role="dialog" aria-modal="true">
         <h2 className="text-lg font-semibold">{r.title}</h2>
         {r.message && <p className="mt-2 whitespace-pre-line text-sm text-zinc-400">{r.message}</p>}
         {r.kind === 'prompt' && (
@@ -74,20 +74,20 @@ export function DialogHost() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && text.trim() && accept()}
-            className="mt-4 w-full rounded-xl bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+            className="mt-4 w-full rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
           />
         )}
         <div className="mt-5 flex justify-end gap-2">
           {r.deleteLabel && (
             <button
               onClick={() => close(DELETE)}
-              className="mr-auto rounded-2xl bg-gradient-to-b from-rose-400 to-rose-600 px-4 py-2.5 text-sm font-semibold text-rose-950 shadow-[0_4px_10px_var(--sh)]"
+              className="mr-auto rounded-lg bg-rose-500 hover:bg-rose-400 px-4 py-2.5 text-sm font-semibold text-white"
             >
               {r.deleteLabel}
             </button>
           )}
           {r.kind !== 'alert' && (
-            <button onClick={cancel} className="rounded-2xl bg-[var(--c-raised)] px-5 py-2.5 text-sm font-semibold text-zinc-100 shadow-[0_4px_10px_var(--sh)]">
+            <button onClick={cancel} className="rounded-lg bg-[var(--c-raised)] px-5 py-2.5 text-sm font-semibold text-zinc-100">
               Zrušit
             </button>
           )}
@@ -95,9 +95,9 @@ export function DialogHost() {
             ref={ok}
             onClick={accept}
             disabled={r.kind === 'prompt' && !text.trim()}
-            className={`rounded-2xl px-5 py-2.5 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,.25),0_4px_10px_var(--sh)] disabled:opacity-40 ${
-              r.danger ? 'bg-gradient-to-b from-rose-400 to-rose-600 text-rose-950' : 'bg-gradient-to-b from-emerald-400 to-emerald-600 text-emerald-950'
-            }`}
+            className={`rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-40 ${
+ r.danger ? 'bg-rose-500 hover:bg-rose-400 text-white' : 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
+ }`}
           >
             {r.okLabel ?? (r.kind === 'alert' ? 'OK' : r.kind === 'prompt' ? 'Uložit' : 'Potvrdit')}
           </button>

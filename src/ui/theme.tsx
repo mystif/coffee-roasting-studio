@@ -63,13 +63,13 @@ export function DisplayToggle() {
     <button
       onClick={() => setDisplay(d)}
       title={title}
-      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${display === d ? 'bg-[var(--c-active)] text-zinc-100 shadow-[0_2px_6px_var(--sh)]' : 'text-zinc-500 hover:text-zinc-200'}`}
+      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${display === d ? 'bg-[var(--c-active)] text-zinc-100' : 'text-zinc-500 hover:text-zinc-200'}`}
     >
       {label}
     </button>
   )
   return (
-    <div className="flex shrink-0 rounded-full bg-[var(--c-chip)] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]">
+    <div className="flex shrink-0 rounded-full bg-[var(--c-chip)] p-0.5 border border-[var(--c-border)]">
       {opt('small', '13″', 'Malý monitor (13,3″ MacBook)')}
       {opt('large', '27″', 'Velký monitor (27″, 1920×1080) – větší písmo a čísla')}
     </div>
@@ -85,7 +85,7 @@ export function ThemeToggle() {
     <button
       onClick={toggleTheme}
       title={theme === 'dark' ? 'Světlý režim' : 'Tmavý režim'}
-      className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-chip)] text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)] hover:text-zinc-100"
+      className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-chip)] text-zinc-300 border border-[var(--c-border)] hover:text-zinc-100"
     >
       {theme === 'dark' ? (
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

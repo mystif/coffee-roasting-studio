@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <section
-      className={`rounded-3xl bg-[var(--c-surface)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_10px_24px_var(--sh)] ${className}`}
+      className={`rounded-xl bg-[var(--c-surface)] p-5 border border-[var(--c-border)] ${className}`}
     >
       {children}
     </section>
@@ -22,16 +22,16 @@ export function ClayButton(props: {
 }) {
   const color =
     props.variant === 'primary'
-      ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 text-emerald-950'
+      ? 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
       : props.variant === 'danger'
-        ? 'bg-gradient-to-b from-rose-400 to-rose-600 text-rose-950'
-        : 'bg-[var(--c-raised)] text-zinc-100'
+        ? 'bg-rose-500 hover:bg-rose-400 text-white'
+        : 'border border-[var(--c-border)] bg-[var(--c-raised)] text-zinc-100 hover:bg-[var(--c-active)]'
   return (
     <button
       onClick={props.onClick}
       disabled={props.disabled}
       title={props.title}
-      className={`${props.size === 'sm' ? 'rounded-xl px-3 py-1 text-xs' : 'rounded-2xl px-5 py-2.5 text-sm'} font-semibold transition active:translate-y-px disabled:opacity-40 ${color} shadow-[inset_0_1px_0_rgba(255,255,255,.25),0_6px_14px_var(--sh)] ${props.className ?? ''}`}
+      className={`${props.size === 'sm' ? 'rounded-md px-3 py-1 text-xs' : 'rounded-lg px-4 py-2 text-sm'} font-medium transition-colors disabled:opacity-40 ${color} ${props.className ?? ''}`}
     >
       {props.children}
     </button>

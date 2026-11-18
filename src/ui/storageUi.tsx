@@ -5,7 +5,7 @@ import { persistState } from '../storage/persistence'
 import { applyUpdate, pwaState } from '../pwa'
 
 const chip =
-  'flex items-center gap-1.5 rounded-full bg-[var(--c-chip)] px-2.5 py-1 text-xs shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]'
+  'flex items-center gap-1.5 rounded-full bg-[var(--c-chip)] px-2.5 py-1 text-xs border border-[var(--c-border)]'
 
 /** Header chip: backup folder state, one click fixes what is missing. */
 export function BackupChip() {
@@ -43,7 +43,7 @@ export function RestoredBanner() {
   if (!p.restoredFrom || r.status !== 'roasting') return null
   const at = new Date(p.restoredFrom).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-sky-400/15 px-4 py-1.5 text-sm text-sky-100 ring-1 ring-sky-400/40">
+    <div className="flex items-center justify-between rounded-lg bg-sky-400/15 px-4 py-1.5 text-sm text-sky-100 ring-1 ring-sky-400/40">
       <span>
         <b>Rozpracované pražení obnoveno</b> (poslední uložení {at}). Připoj pražičku – záznam pokračuje, výpadek bude v grafu jako mezera.
       </span>
@@ -65,7 +65,7 @@ export function PersistError() {
   const p = persistState.use()
   if (!p.error) return null
   return (
-    <div className="rounded-2xl bg-rose-500/15 px-4 py-1.5 text-sm text-rose-200 ring-1 ring-rose-400/40">
+    <div className="rounded-lg bg-rose-500/15 px-4 py-1.5 text-sm text-rose-200 ring-1 ring-rose-400/40">
       Chyba ukládání: {p.error}. Neukončuj prohlížeč, dokud se pražení neuloží.
     </div>
   )
@@ -89,7 +89,7 @@ export function UpdateToast({ roasting }: { roasting: boolean }) {
   const p = pwaState.use()
   if (!p.updateReady || roasting) return null
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-2xl bg-[var(--c-raised2)] px-5 py-3 text-sm shadow-[0_12px_30px_var(--sh)] ring-1 ring-white/10">
+    <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-lg bg-[var(--c-raised2)] px-5 py-3 text-sm border border-[var(--c-border)] shadow-[0_16px_48px_var(--sh)] ring-1 ring-white/10">
       Je připravená nová verze aplikace.
       <button className="rounded-xl bg-sky-500 px-3 py-1.5 font-semibold text-sky-950" onClick={applyUpdate}>
         Aktualizovat

@@ -49,8 +49,8 @@ export function DayTimer({ batchSec = null, compact = false }: { batchSec?: numb
     [d.startedAt, d.stoppedAt],
   )
 
-  const box = 'ml-auto flex items-center gap-3 rounded-2xl bg-[var(--c-bg)] px-3 py-1'
-  const btn = 'rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wide shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_3px_8px_var(--sh)] active:translate-y-px'
+  const box = 'ml-auto flex items-center gap-3 rounded-lg bg-[var(--c-bg)] px-3 py-1'
+  const btn = 'rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wide'
 
   if (d.startedAt === null && compact) {
     return (
@@ -98,7 +98,7 @@ export function DayTimer({ batchSec = null, compact = false }: { batchSec?: numb
         <Bottle ms={bottleMs} since={d.bottleResetAt} />
         {!d.stoppedAt && (
           <button
-            className="rounded-md bg-gradient-to-b from-rose-400 to-rose-600 px-2 py-0.5 text-[0.625rem] font-bold uppercase text-rose-950"
+            className="rounded-md bg-rose-500 hover:bg-rose-400 px-2 py-0.5 text-[0.625rem] font-bold uppercase text-white"
             onClick={async () => {
               if (await askConfirm('Ukončit den pražení?', { message: `${fmtDuration(ms2)} · plyn ~${kg(gasKg(ms2))} · ${dávky(roasts ?? 0)}`, okLabel: 'Ukončit den', danger: true }))
                 void stopDay()
@@ -137,7 +137,7 @@ export function DayTimer({ batchSec = null, compact = false }: { batchSec?: numb
         </button>
       ) : (
         <button
-          className={`${btn} bg-gradient-to-b from-rose-400 to-rose-600 text-rose-950`}
+          className={`${btn} bg-rose-500 hover:bg-rose-400 text-white`}
           onClick={async () => {
             if (await askConfirm('Ukončit den pražení?', { message: `${fmtDuration(ms)} · plyn ~${kg(gasKg(ms))} · ${dávky(roasts ?? 0)}`, okLabel: 'Ukončit den', danger: true }))
               void stopDay()

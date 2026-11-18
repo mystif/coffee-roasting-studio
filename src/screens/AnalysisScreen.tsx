@@ -90,7 +90,7 @@ function Compare({ selected, all, ids, setIds }: { selected: RoastRecord[]; all:
         <p className="text-sm text-zinc-400">Vyber pražení výše, v Historii zaškrtni řádky a klikni Porovnat, nebo použij tlačítko u kávy ve statistikách.</p>
       ) : (
         <>
-          <div className="h-[26rem] rounded-2xl bg-[var(--c-chart)] p-2">
+          <div className="h-[26rem] rounded-lg bg-[var(--c-chart)] p-2">
             <CompareChart grid={aligned.grid} series={aligned.series} showET={showET} showRoR={showRoR} />
           </div>
           <div className="overflow-auto">

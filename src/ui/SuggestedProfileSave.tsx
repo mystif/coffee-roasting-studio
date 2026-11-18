@@ -43,7 +43,7 @@ export function SuggestedProfileSave({ state }: { state: RoastState }) {
   }
 
   return (
-    <div className="grid gap-2 rounded-2xl bg-[var(--c-bg)] p-3 text-sm">
+    <div className="grid gap-2 rounded-lg bg-[var(--c-bg)] p-3 text-sm">
       <p className="font-semibold">Pražil jsi podle navrženého profilu</p>
       <p className="text-xs text-zinc-400">Ulož toto skutečné pražení jako profil kávy – příště podle něj budeš pražit místo odhadu.</p>
       <label className="flex flex-col gap-1 text-xs text-zinc-400">

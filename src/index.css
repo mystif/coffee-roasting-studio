@@ -14,14 +14,16 @@
   color-scheme: dark;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --c-bg: #16171d;
-  --c-surface: #1f2128;
-  --c-chip: #22242c;
-  --c-raised: #2a2d36;
-  --c-raised2: #262a33;
-  --c-active: #2f323c;
-  --c-chart: #1b1d23;
-  --sh: rgba(0, 0, 0, 0.35);
+  /* Linear / Vercel-like: near-black layers separated by hairline borders, no clay shadows */
+  --c-bg: #0b0c0e;
+  --c-surface: #131418;
+  --c-chip: #15161a;
+  --c-raised: #1b1c21;
+  --c-raised2: #18191e;
+  --c-active: #24262c;
+  --c-chart: #0f1013;
+  --c-border: rgba(255, 255, 255, 0.08);
+  --sh: rgba(0, 0, 0, 0.5);
   --sh-in: rgba(0, 0, 0, 0.45);
   --sh-soft: rgba(0, 0, 0, 0.25);
 
@@ -32,8 +34,8 @@
   --chart-axis: #9aa0ac;
   --chart-grid: rgba(255, 255, 255, 0.045);
   --chart-border: rgba(255, 255, 255, 0.06);
-  --chart-logo-opacity: 0.07;
-  --chart-label-bg: rgba(30, 32, 40, 0.92);
+  --chart-logo-opacity: 0.05;
+  --chart-label-bg: rgba(22, 23, 28, 0.92);
   --chart-label: #ffffff;
   --chart-label-auto: #cbd5e1;
   --chart-event-line: rgba(255, 255, 255, 0.35);
@@ -49,14 +51,15 @@
 :root[data-theme='light'] {
   color-scheme: light;
 
-  --c-bg: #e9ebf1;
-  --c-surface: #f6f7fb;
-  --c-chip: #f6f7fb;
+  --c-bg: #f6f7f9;
+  --c-surface: #ffffff;
+  --c-chip: #ffffff;
   --c-raised: #ffffff;
-  --c-raised2: #eef0f6;
-  --c-active: #ffffff;
-  --c-chart: #fbfcfe;
-  --sh: rgba(60, 66, 90, 0.14);
+  --c-raised2: #f3f4f6;
+  --c-active: #eef0f3;
+  --c-chart: #ffffff;
+  --c-border: rgba(15, 18, 30, 0.1);
+  --sh: rgba(15, 18, 30, 0.12);
   --sh-in: rgba(60, 66, 90, 0.1);
   --sh-soft: rgba(60, 66, 90, 0.1);
 
@@ -104,4 +107,18 @@
 
 body {
   background: var(--c-bg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+}
+
+h1,
+h2 {
+  letter-spacing: -0.02em;
+}
+
+/* inputs and selects: flat with a hairline border */
+input:not([type='checkbox']):not([type='radio']):not([type='file']),
+select,
+textarea {
+  border: 1px solid var(--c-border);
 }

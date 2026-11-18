@@ -109,7 +109,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
           }}
         />
       )}
-      {notice && <p className="mb-3 rounded-2xl bg-emerald-400/10 px-4 py-2 text-sm text-emerald-200 ring-1 ring-emerald-400/30">{notice}</p>}
+      {notice && <p className="mb-3 rounded-lg bg-emerald-400/10 px-4 py-2 text-sm text-emerald-200 ring-1 ring-emerald-400/30">{notice}</p>}
       {roasts && roasts.length === 0 && (
         <p className="text-zinc-400">Zatím žádné uložené pražení. Každé pražení se sem uloží automaticky po Finish – a starší pražení z Artisanu sem dostaneš tlačítkem Importovat z Artisanu.</p>
       )}
@@ -138,7 +138,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
                 <tr
                   key={r.id}
                   onClick={() => go(`#/historie/${r.id}`)}
-                  className="cursor-pointer bg-[var(--c-surface)] tabular-nums shadow-[0_4px_12px_var(--sh-soft)] transition hover:bg-[var(--c-raised2)] [&>td:first-child]:rounded-l-2xl [&>td:last-child]:rounded-r-2xl [&>td]:px-3 [&>td]:py-2.5"
+                  className="cursor-pointer bg-[var(--c-surface)] tabular-nums border border-[var(--c-border)] transition hover:bg-[var(--c-raised2)] [&>td:first-child]:rounded-l-2xl [&>td:last-child]:rounded-r-2xl [&>td]:px-3 [&>td]:py-2.5"
                 >
                   <td onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={picked.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4" />
@@ -164,7 +164,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
                     ) : findEvent(r.events, 'CHARGE') ? (
                       <button
                         onClick={() => void saveProfiles([r])}
-                        className="whitespace-nowrap rounded-lg bg-[var(--c-raised)] px-2.5 py-1 text-xs font-semibold text-zinc-200 shadow-[0_2px_6px_var(--sh)] hover:text-zinc-100"
+                        className="whitespace-nowrap rounded-lg bg-[var(--c-raised)] px-2.5 py-1 text-xs font-semibold text-zinc-200 hover:text-zinc-100"
                         title="Uložit jako referenční profil (název můžeš změnit v Profilech)"
                       >
                         + profil
@@ -180,7 +180,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
         </table>
       )}
       {roasts && roasts.length > 0 && rows.length === 0 && <p className="text-zinc-400">Filtru neodpovídá žádné pražení.</p>}
-      <div className="mt-8 flex flex-wrap items-center gap-3 rounded-3xl bg-[var(--c-surface)] p-4 text-sm">
+      <div className="mt-8 flex flex-wrap items-center gap-3 rounded-xl bg-[var(--c-surface)] p-4 text-sm">
         <span className="font-semibold">Data</span>
         <span className="text-zinc-400">Kompletní záloha všech pražení, káv a profilů v jednom souboru.</span>
         <ClayButton

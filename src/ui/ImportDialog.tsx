@@ -84,7 +84,7 @@ export function ImportDialog({ initial, onClose }: { initial: Row[]; onClose: (i
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8">
-      <div className="flex max-h-full w-full max-w-6xl flex-col gap-4 rounded-3xl bg-[var(--c-surface)] p-6 shadow-[0_20px_60px_var(--sh)]">
+      <div className="flex max-h-full w-full max-w-6xl flex-col gap-4 rounded-xl bg-[var(--c-surface)] p-6 border border-[var(--c-border)] shadow-[0_16px_48px_var(--sh)]">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold">Import z Artisanu</h2>

@@ -51,7 +51,7 @@ export function NavTabs() {
   const route = useRoute()
   const roast = useRoastState()
   return (
-    <nav className="flex items-center gap-0.5 rounded-xl bg-[var(--c-bg)] p-0.5 shadow-[inset_0_2px_6px_var(--sh-in)]">
+    <nav className="flex items-center gap-0.5 rounded-xl bg-[var(--c-bg)] p-0.5 border border-[var(--c-border)]">
       {TABS.map((t) => {
         const active = t.match.includes(route.name)
         return (
@@ -59,8 +59,8 @@ export function NavTabs() {
             key={t.href}
             href={t.href}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-              active ? 'bg-[var(--c-raised)] text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_4px_10px_var(--sh)]' : 'text-zinc-400 hover:text-zinc-100'
-            }`}
+ active ? 'bg-[var(--c-raised)] text-zinc-100' : 'text-zinc-400 hover:text-zinc-100'
+ }`}
           >
             {t.label}
             {t.href === '#/' && roast.status === 'roasting' && !active && (
@@ -99,7 +99,7 @@ export function Page({ title, actions, children }: { title: string; actions?: Re
 }
 
 export const inputCls =
-  'rounded-xl bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400'
+  'rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40'
 
 /** Small "⋯" menu for rarely used actions (keeps the roasting header uncluttered). */
 export function MoreMenu({ items }: { items: { label: string; hint?: string; onClick: () => void }[] }) {
@@ -116,12 +116,12 @@ export function MoreMenu({ items }: { items: { label: string; hint?: string; onC
       <button
         onClick={() => setOpen((o) => !o)}
         title="Další akce"
-        className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-chip)] text-base text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)] hover:text-zinc-100"
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--c-chip)] text-base text-zinc-300 border border-[var(--c-border)] hover:text-zinc-100"
       >
         ⋯
       </button>
       {open && (
-        <div className="absolute right-0 top-9 z-40 w-64 rounded-2xl bg-[var(--c-raised)] p-1.5 shadow-[0_16px_40px_var(--sh)] ring-1 ring-white/5">
+        <div className="absolute right-0 top-9 z-40 w-64 rounded-lg bg-[var(--c-raised)] p-1.5 border border-[var(--c-border)] shadow-[0_16px_48px_var(--sh)] ring-1 ring-white/5">
           {items.map((it) => (
             <button
               key={it.label}

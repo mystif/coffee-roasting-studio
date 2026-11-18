@@ -20,7 +20,7 @@ import { SaveNewProfileButton, UpdateProfileButton } from './UpdateProfileButton
 import { SuggestedProfileSave } from './SuggestedProfileSave'
 
 const CARD =
-  'rounded-3xl bg-[var(--c-surface)] shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_10px_24px_var(--sh)]'
+  'rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]'
 
 export const parseKg = (s: string): number | null => {
   const v = Number(s.replace(',', '.').trim())
@@ -61,13 +61,13 @@ export function EventPanel({ state }: { state: RoastState }) {
             <button
               disabled={!roasting}
               onClick={() => roast.mark(type)}
-              className={`w-full rounded-xl px-2.5 py-1.5 text-left text-sm transition active:translate-y-px disabled:opacity-40 ${
-                isNext
-                  ? 'bg-gradient-to-b from-sky-400 to-sky-600 text-sky-950 ring-2 ring-sky-300/50'
-                  : e
-                    ? 'bg-[var(--c-raised2)] text-zinc-100'
-                    : 'bg-[var(--c-raised)] text-zinc-200'
-              } shadow-[inset_0_1px_0_rgba(255,255,255,.2),0_6px_14px_var(--sh)]`}
+              className={`w-full rounded-xl px-2.5 py-1.5 text-left text-sm transition disabled:opacity-40 ${
+ isNext
+ ? 'bg-sky-500 text-white ring-1 ring-sky-300/40'
+ : e
+ ? 'bg-[var(--c-raised2)] text-zinc-100'
+ : 'bg-[var(--c-raised)] text-zinc-200'
+ } `}
             >
               <div className="flex items-baseline justify-between">
                 <span className="font-semibold">{EVENT_LABEL[type]}</span>
@@ -115,7 +115,7 @@ export function EventPanel({ state }: { state: RoastState }) {
         <button
           disabled={!roasting}
           onClick={() => setCustom('')}
-          className="rounded-2xl border border-dashed border-zinc-600 px-3 py-2 text-sm text-zinc-300 disabled:opacity-40"
+          className="rounded-lg border border-dashed border-zinc-600 px-3 py-2 text-sm text-zinc-300 disabled:opacity-40"
         >
           + Vlastní událost
         </button>
@@ -132,7 +132,7 @@ export function EventPanel({ state }: { state: RoastState }) {
             } else if (e.key === 'Escape') setCustom(null)
           }}
           onBlur={() => setCustom(null)}
-          className="rounded-2xl bg-[var(--c-bg)] px-3 py-2 text-sm outline-none ring-1 ring-zinc-600 focus:ring-sky-400"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-400/40"
         />
       )}
       {roasting && <p className="px-1 text-[0.6875rem] leading-snug text-zinc-500">Tip: klikni na křivku BT v grafu – poznámka se uloží do toho místa.</p>}
@@ -248,7 +248,7 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
           list="coffee-list"
           onChange={(e) => setCoffee(e.target.value)}
           placeholder={coffees?.length ? 'vyber nebo napiš název' : 'např. Colombia Huila'}
-          className="rounded-xl bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
         />
         <datalist id="coffee-list">
           {coffees?.map((c) => (
@@ -263,7 +263,7 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
         <select
           value={refKey}
           onChange={(e) => chooseRef(e.target.value)}
-          className="rounded-xl bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
         >
           <option value="">bez reference</option>
           {state.reference?.kind === 'roast' && <option value={refKey}>Pražení: {state.reference.label}</option>}
@@ -283,7 +283,7 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
           onChange={(e) => setWeight(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && canStart && void start()}
           placeholder="3,0"
-          className="rounded-xl bg-[var(--c-bg)] px-3 py-2 text-base tabular-nums text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base tabular-nums text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
         />
       </label>
       <ClayButton variant="primary" onClick={() => void start()} disabled={!canStart} className="px-8 py-3 text-base">
@@ -309,7 +309,7 @@ export function ControlsBar({ state, batchSec }: { state: RoastState; batchSec?:
           value={c.drum}
           disabled={!enabled}
           onChange={(e) => roast.setControl('drum', Number(e.target.value))}
-          className="rounded-lg bg-[var(--c-bg)] px-1.5 py-0.5 text-xs font-semibold tabular-nums text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+          className="rounded-lg bg-[var(--c-bg)] px-1.5 py-0.5 text-xs font-semibold tabular-nums text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
         >
           {DRUM_VALUES.map((v) => (
             <option key={v} value={v}>
@@ -338,8 +338,8 @@ function Presets(props: { label: string; title: string; kind: ControlKind; value
               onClick={() => roast.setControl(props.kind, v)}
               style={active ? { background: shade(props.kind, v), color: textOn(props.kind, v) } : undefined}
               className={`min-w-7 rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums transition ${
-                active ? 'shadow-[0_2px_5px_var(--sh)]' : 'text-zinc-300 hover:bg-white/5'
-              }`}
+ active ? '' : 'text-zinc-300 hover:bg-white/5'
+ }`}
             >
               {formatControl(props.kind, v)}
             </button>
@@ -429,7 +429,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
               roast.update({ roastedWeightG: parseKg(e.target.value) })
             }}
             placeholder="2,55"
-            className="rounded-xl bg-[var(--c-bg)] px-3 py-2 text-base tabular-nums outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+            className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base tabular-nums outline-none focus:ring-2 focus:ring-sky-400/40"
           />
         </label>
       </div>
@@ -441,8 +441,8 @@ export function SummaryPanel({ state }: { state: RoastState }) {
               key={n}
               onClick={() => roast.update({ rating: state.rating === n ? null : n })}
               className={`h-8 flex-1 rounded-lg text-sm font-semibold ${
-                state.rating !== null && n <= state.rating ? 'bg-amber-400 text-amber-950' : 'bg-[var(--c-bg)] text-zinc-400 hover:text-zinc-100'
-              }`}
+ state.rating !== null && n <= state.rating ? 'bg-amber-400 text-amber-950' : 'bg-[var(--c-bg)] text-zinc-400 hover:text-zinc-100'
+ }`}
             >
               {n}
             </button>
@@ -455,7 +455,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
           value={state.notes}
           onChange={(e) => roast.update({ notes: e.target.value })}
           rows={3}
-          className="rounded-xl bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none ring-1 ring-zinc-700 focus:ring-sky-400"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
         />
       </label>
       {state.source !== 'replay' && <SuggestedProfileSave state={state} />}
@@ -478,7 +478,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-[var(--c-bg)] px-2 py-2">
+    <div className="rounded-lg bg-[var(--c-bg)] px-2 py-2">
       <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">{label}</div>
       <div className="text-xl font-semibold tabular-nums">{value}</div>
     </div>

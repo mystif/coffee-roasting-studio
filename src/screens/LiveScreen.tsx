@@ -153,7 +153,7 @@ export function LiveScreen() {
           className="h-6 w-6 shrink-0"
         />
         <NavTabs />
-        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--c-chip)] px-2.5 py-1 text-xs shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]">
+        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--c-chip)] px-2.5 py-1 text-xs border border-[var(--c-border)]">
           <span className={`h-2.5 w-2.5 rounded-full ${STATE[conn].dot}`} />
           {STATE[conn].label}
         </div>
@@ -234,13 +234,13 @@ export function LiveScreen() {
       <RestoredBanner />
       <PersistError />
       {isReplay && (
-        <div className="rounded-2xl bg-amber-400/15 px-4 py-1.5 text-center text-sm font-semibold text-amber-200 ring-1 ring-amber-400/40">
+        <div className="rounded-lg bg-amber-400/15 px-4 py-1.5 text-center text-sm font-semibold text-amber-200 ring-1 ring-amber-400/40">
           PŘEHRÁVÁNÍ ZÁZNAMU „{snap.sourceLabel}“ – nejsou to živá data z
           pražičky
         </div>
       )}
       {!supported && (
-        <div className="rounded-2xl bg-rose-500/15 px-4 py-2 text-sm text-rose-200 ring-1 ring-rose-400/40">
+        <div className="rounded-lg bg-rose-500/15 px-4 py-2 text-sm text-rose-200 ring-1 ring-rose-400/40">
           Tento prohlížeč neumí Web Serial. Použij Google Chrome.
         </div>
       )}
@@ -264,7 +264,7 @@ export function LiveScreen() {
       )}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <div className="relative flex min-w-0 flex-1 flex-col rounded-2xl border border-[var(--chart-border)] bg-[var(--c-chart)] p-3 pt-2">
+        <div className="relative flex min-w-0 flex-1 flex-col rounded-lg border border-[var(--chart-border)] bg-[var(--c-chart)] p-3 pt-2">
           <PhaseStrip state={state} now={now} est={est} />
           <div className="relative min-h-0 flex-1">
             {/* roastery logo as a faint watermark behind the curves */}
@@ -406,7 +406,7 @@ function Readout(props: {
   const display =
     props.text ?? (props.value == null ? "—" : props.value.toFixed(1));
   return (
-    <div className="rounded-xl bg-[var(--c-surface)] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_6px_var(--sh),0_6px_16px_var(--sh)]">
+    <div className="rounded-xl bg-[var(--c-surface)] px-2 py-1 border border-[var(--c-border)]">
       <div className="flex items-baseline justify-between">
         <span
           className="text-xs font-semibold tracking-wide"

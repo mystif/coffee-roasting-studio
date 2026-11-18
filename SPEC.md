@@ -21,7 +21,7 @@ Jednoduchý monitorovací a záznamový nástroj pro pražičku **Dongyi BR-3.5*
 | Detekce událostí | **Algoritmy Artisanu** (BTbreak, findTPint, fáze 130 °C) | Ověřeno na 35 reálných praženích uživatele. |
 | Graf | **uPlot** | Nejrychlejší knihovna pro živé časové řady, malá velikost. |
 | Jazyk | Čeština, pražicí termíny anglicky (Charge, TP, Dry End, FC, Drop, RoR, DTR) | Přání uživatele. |
-| Výchozí motiv | Tmavý (Claymorphism), světlý volitelně | Lepší kontrast grafu. |
+| Výchozí motiv | Tmavý, světlý volitelně – minimalistický styl (Linear / Vercel / TradingView): plochy s jemnými okraji, bez clay stínů | Lepší kontrast grafu. |
 
 ## 3. Architektura
 

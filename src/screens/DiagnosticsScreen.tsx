@@ -94,7 +94,7 @@ export function DiagnosticsScreen() {
             <h1 className="text-2xl font-semibold tracking-tight">Coffee Roasting Studio</h1>
             <p className="text-zinc-400 text-sm">Diagnostika připojení Dongyi BR-3.5 (pouze čtení) · <a className="underline" href="#/">zpět na pražení</a></p>
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-[var(--c-chip)] px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]">
+          <div className="flex items-center gap-2 rounded-full bg-[var(--c-chip)] px-4 py-2 border border-[var(--c-border)]">
             <span className={`h-3 w-3 rounded-full ${STATE_COLOR[state]}`} />
             <span className="text-sm font-medium">{STATE_LABEL[state]}</span>
           </div>
