@@ -264,7 +264,7 @@ export function LiveScreen() {
       )}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <div className="relative flex min-w-0 flex-1 flex-col rounded-3xl bg-[var(--c-chart)] p-3 pt-2 shadow-[inset_0_2px_10px_var(--sh-in)]">
+        <div className="relative flex min-w-0 flex-1 flex-col rounded-2xl border border-[var(--chart-border)] bg-[var(--c-chart)] p-3 pt-2">
           <PhaseStrip state={state} now={now} est={est} />
           <div className="relative min-h-0 flex-1">
             {/* roastery logo as a faint watermark behind the curves */}

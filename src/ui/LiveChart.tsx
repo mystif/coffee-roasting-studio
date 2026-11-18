@@ -19,6 +19,50 @@ const axis = () => ({
   font: `${Math.round(12 * chartScale())}px Inter, system-ui, sans-serif`,
 })
 
+// smooth (monotone spline – no overshoot), ~2.75 px, no point markers, soft gradient glow down to the x-axis
+const spline = uPlot.paths.spline!()
+const FILL_ALPHA = 0.15 // spec: 15–20 %; three overlapping areas → the lower end
+
+/** Linear gradient from just under the curve's highest visible point (≈18 %) to fully transparent at the x-axis. */
+function areaGradient(u: uPlot, si: number, color: string): CanvasGradient | string {
+  const { top, height } = u.bbox
+  if (!height) return 'transparent'
+  const scale = u.series[si].scale!
+  const ys = u.data[si] as (number | null)[]
+  const xs = u.data[0] as number[]
+  const { min = -Infinity, max = Infinity } = u.scales.x
+  let peak = -Infinity
+  for (let i = 0; i < ys.length; i++) {
+    const v = ys[i]
+    if (v != null && xs[i] >= min && xs[i] <= max && v > peak) peak = v
+  }
+  const y0 = Number.isFinite(peak) ? Math.min(top + height - 1, Math.max(top, u.valToPos(peak, scale, true))) : top
+  const g = u.ctx.createLinearGradient(0, y0, 0, top + height)
+  g.addColorStop(0, withAlpha(color, FILL_ALPHA))
+  g.addColorStop(1, withAlpha(color, 0))
+  return g
+}
+
+/** '#rrggbb' + alpha → rgba() */
+const withAlpha = (hex: string, a: number) => {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim())
+  return m ? `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${a})` : hex
+}
+
+const curve = (label: string, scale: string, colorVar: string): uPlot.Series => {
+  const color = cssVar(colorVar)
+  return {
+    label,
+    scale,
+    stroke: color,
+    width: 2.75,
+    paths: spline,
+    points: { show: false },
+    fill: (u, si) => areaGradient(u, si, color),
+    spanGaps: false,
+  }
+}
+
 /** Zoom per scroll pixel (0.0015 → one mouse-wheel notch ≈ 9 %, a trackpad swipe zooms gently). */
 const ZOOM_SENSITIVITY = 0.0015
 const PAN_SENSITIVITY = 0.6
@@ -143,9 +187,9 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       ],
       series: [
         {},
-        { label: 'BT', scale: 'temp', stroke: cssVar('--curve-bt'), width: 2.5, spanGaps: false },
-        { label: 'ET', scale: 'temp', stroke: cssVar('--curve-et'), width: 2, spanGaps: false },
-        { label: 'RoR', scale: 'ror', stroke: cssVar('--curve-ror'), width: 2, spanGaps: false },
+        curve('BT', 'temp', '--curve-bt'),
+        curve('ET', 'temp', '--curve-et'),
+        curve('RoR', 'ror', '--curve-ror'),
       ],
       hooks: {
         drawClear: [(u) => drawPhases(u, overlayRef.current), (u) => drawControlBars(u, overlayRef.current), (u) => drawReference(u, overlayRef.current)],

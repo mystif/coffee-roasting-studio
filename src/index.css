@@ -26,19 +26,20 @@
   --sh-soft: rgba(0, 0, 0, 0.25);
 
   /* curves and chart */
-  --curve-bt: #5aa9ff;
-  --curve-et: #ff6b5a;
-  --curve-ror: #ffd166;
+  --curve-bt: #ff941f;
+  --curve-et: #398bff;
+  --curve-ror: #b45cff;
   --chart-axis: #9aa0ac;
-  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-grid: rgba(255, 255, 255, 0.045);
+  --chart-border: rgba(255, 255, 255, 0.06);
   --chart-logo-opacity: 0.07;
   --chart-label-bg: rgba(30, 32, 40, 0.92);
   --chart-label: #ffffff;
   --chart-label-auto: #cbd5e1;
   --chart-event-line: rgba(255, 255, 255, 0.35);
-  --chart-ref-bt: rgba(90, 169, 255, 0.55);
-  --chart-ref-et: rgba(255, 107, 90, 0.38);
-  --chart-ref-ror: rgba(255, 209, 102, 0.4);
+  --chart-ref-bt: rgba(255, 148, 31, 0.55);
+  --chart-ref-et: rgba(57, 139, 255, 0.4);
+  --chart-ref-ror: rgba(180, 92, 255, 0.45);
   --chart-ref-text: rgba(255, 255, 255, 0.35);
   --phase-drying: #4ade80;
   --phase-maillard: #f59e0b;
@@ -59,19 +60,20 @@
   --sh-in: rgba(60, 66, 90, 0.1);
   --sh-soft: rgba(60, 66, 90, 0.1);
 
-  --curve-bt: #1f6fd8;
-  --curve-et: #d63f2c;
-  --curve-ror: #c98600;
+  --curve-bt: #ff941f;
+  --curve-et: #398bff;
+  --curve-ror: #b45cff;
   --chart-axis: #5b6170;
-  --chart-grid: rgba(20, 24, 40, 0.07);
+  --chart-grid: rgba(20, 24, 40, 0.055);
+  --chart-border: rgba(20, 24, 40, 0.08);
   --chart-logo-opacity: 0.16;
   --chart-label-bg: rgba(255, 255, 255, 0.94);
   --chart-label: #15171c;
   --chart-label-auto: #4b5260;
   --chart-event-line: rgba(20, 24, 40, 0.35);
-  --chart-ref-bt: rgba(31, 111, 216, 0.5);
-  --chart-ref-et: rgba(214, 63, 44, 0.35);
-  --chart-ref-ror: rgba(201, 134, 0, 0.45);
+  --chart-ref-bt: rgba(255, 148, 31, 0.6);
+  --chart-ref-et: rgba(57, 139, 255, 0.45);
+  --chart-ref-ror: rgba(180, 92, 255, 0.5);
   --chart-ref-text: rgba(20, 24, 40, 0.45);
   --phase-drying: #15803d;
   --phase-maillard: #b45309;
