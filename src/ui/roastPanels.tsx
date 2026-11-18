@@ -71,7 +71,7 @@ export function EventPanel({ state }: { state: RoastState }) {
             >
               <div className="flex items-baseline justify-between">
                 <span className="font-semibold">{EVENT_LABEL[type]}</span>
-                {isNext && <span className="text-[10px] font-bold uppercase opacity-70">mezerník</span>}
+                {isNext && <span className="text-[0.625rem] font-bold uppercase opacity-70">mezerník</span>}
               </div>
               {e && (
                 <div className="text-xs tabular-nums opacity-80">
@@ -135,7 +135,7 @@ export function EventPanel({ state }: { state: RoastState }) {
           className="rounded-2xl bg-[var(--c-bg)] px-3 py-2 text-sm outline-none ring-1 ring-zinc-600 focus:ring-sky-400"
         />
       )}
-      {roasting && <p className="px-1 text-[11px] leading-snug text-zinc-500">Tip: klikni na křivku BT v grafu – poznámka se uloží do toho místa.</p>}
+      {roasting && <p className="px-1 text-[0.6875rem] leading-snug text-zinc-500">Tip: klikni na křivku BT v grafu – poznámka se uloží do toho místa.</p>}
     </div>
   )
 }
@@ -199,7 +199,7 @@ export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: n
 function Mini({ label, value, title }: { label: string; value: string; title?: string }) {
   return (
     <div className="flex items-baseline gap-1.5 whitespace-nowrap" title={title}>
-      <span className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</span>
+      <span className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">{label}</span>
       <span className="text-lg font-semibold tabular-nums">{value}</span>
     </div>
   )
@@ -303,7 +303,7 @@ export function ControlsBar({ state, batchSec }: { state: RoastState; batchSec?:
     <div className={`${CARD} flex items-center gap-4 overflow-x-auto px-3 py-1 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
       <Presets label="Plyn" title="Plyn (kPa) · klávesy ↑ ↓" kind="gas" values={GAS_PRESETS} current={c.gas} enabled={enabled} />
       <Presets label="Vzduch" title="Vzduch – Hot Air (%) · klávesy 1–5" kind="air" values={AIR_PRESETS} current={c.air} enabled={enabled} />
-      <label className="flex shrink-0 items-center gap-1.5 text-[11px] text-zinc-400" title="Rychlost bubnu (%) · klávesy [ ]">
+      <label className="flex shrink-0 items-center gap-1.5 text-[0.6875rem] text-zinc-400" title="Rychlost bubnu (%) · klávesy [ ]">
         Buben
         <select
           value={c.drum}
@@ -327,7 +327,7 @@ export function ControlsBar({ state, batchSec }: { state: RoastState; batchSec?:
 function Presets(props: { label: string; title: string; kind: ControlKind; values: number[]; current: number; enabled: boolean }) {
   return (
     <div className="flex shrink-0 items-center gap-1.5" title={props.title}>
-      <span className="text-[11px] text-zinc-400">{props.label}</span>
+      <span className="text-[0.6875rem] text-zinc-400">{props.label}</span>
       <div className="flex gap-px rounded-lg bg-[var(--c-bg)] p-0.5">
         {props.values.map((v) => {
           const active = props.current === v
@@ -479,7 +479,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-[var(--c-bg)] px-2 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</div>
+      <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">{label}</div>
       <div className="text-xl font-semibold tabular-nums">{value}</div>
     </div>
   )

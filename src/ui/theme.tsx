@@ -28,6 +28,54 @@ export function toggleTheme() {
   themeState.set({ theme })
 }
 
+// ── monitor size: "small" = 13,3" MacBook (1280×800), "large" = 27" 1920×1080 ──
+export type Display = 'small' | 'large'
+const storedDisplay = (): Display => {
+  try {
+    return localStorage.getItem('display') === 'large' ? 'large' : 'small'
+  } catch {
+    return 'small'
+  }
+}
+export const displayState = createStore({ display: storedDisplay() })
+/** Scale of the chart's texts, badges and lanes. */
+export const chartScale = () => (displayState.get().display === 'large' ? 1.5 : 1)
+/** The gas/air/drum lanes under the chart get even bigger badges on the large monitor. */
+export const laneScale = () => (displayState.get().display === 'large' ? 2 : 1)
+const applyDisplay = (d: Display) => {
+  if (typeof document !== 'undefined') document.documentElement.dataset.display = d
+}
+applyDisplay(displayState.get().display)
+
+export function setDisplay(display: Display) {
+  try {
+    localStorage.setItem('display', display)
+  } catch {
+    /* not remembered */
+  }
+  applyDisplay(display)
+  displayState.set({ display })
+}
+
+export function DisplayToggle() {
+  const { display } = displayState.use()
+  const opt = (d: Display, label: string, title: string) => (
+    <button
+      onClick={() => setDisplay(d)}
+      title={title}
+      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${display === d ? 'bg-[var(--c-active)] text-zinc-100 shadow-[0_2px_6px_var(--sh)]' : 'text-zinc-500 hover:text-zinc-200'}`}
+    >
+      {label}
+    </button>
+  )
+  return (
+    <div className="flex shrink-0 rounded-full bg-[var(--c-chip)] p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_6px_16px_var(--sh)]">
+      {opt('small', '13″', 'Malý monitor (13,3″ MacBook)')}
+      {opt('large', '27″', 'Velký monitor (27″, 1920×1080) – větší písmo a čísla')}
+    </div>
+  )
+}
+
 /** Reads a CSS custom property (for canvas drawing, which can't use CSS directly). */
 export const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 

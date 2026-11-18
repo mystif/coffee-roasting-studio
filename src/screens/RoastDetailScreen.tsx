@@ -306,7 +306,7 @@ function EditPanel({ r, onDelete }: { r: RoastRecord; onDelete: () => void }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-3xl bg-[var(--c-surface)] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_10px_24px_var(--sh-soft)]">
-      <div className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</div>
+      <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">{label}</div>
       <div className="text-2xl font-semibold tabular-nums">{value}</div>
     </div>
   )

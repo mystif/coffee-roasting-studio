@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+/* 27" monitor: the whole UI (rem based) is 25 % larger */
+:root[data-display='large'] {
+  font-size: 125%;
+}
+
 /* ── Theme tokens ───────────────────────────────────────────
    Dark is the default (best contrast for the chart while roasting).
    Light remaps the surfaces, the zinc text scale and the pale accent

@@ -13,6 +13,8 @@ interface Persisted {
   reason: DayReason | null
   /** automatic start allowed (false right after STOP until the roaster cools down or a new day) */
   armed: boolean
+  /** when the gas bottle was last changed (null = never reset) */
+  bottleResetAt?: number | null
 }
 
 export interface DayRecord {
@@ -22,14 +24,22 @@ export interface DayRecord {
   roasts: number
 }
 
-export const dayState = createStore<Persisted & { loaded: boolean }>({ startedAt: null, stoppedAt: null, reason: null, armed: true, loaded: false })
+export const dayState = createStore<Persisted & { loaded: boolean; history: DayRecord[] }>({
+  startedAt: null,
+  stoppedAt: null,
+  reason: null,
+  armed: true,
+  bottleResetAt: null,
+  loaded: false,
+  history: [],
+})
 
 const KEY = 'daySession'
 const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString()
 
 function save() {
-  const { startedAt, stoppedAt, reason, armed } = dayState.get()
-  void setSetting(KEY, { startedAt, stoppedAt, reason, armed })
+  const { startedAt, stoppedAt, reason, armed, bottleResetAt } = dayState.get()
+  void setSetting(KEY, { startedAt, stoppedAt, reason, armed, bottleResetAt })
 }
 
 export const isRunning = () => {
@@ -50,7 +60,15 @@ export async function stopDay(now = Date.now()) {
   save()
   const roasts = await db.roasts.where('roastDate').aboveOrEqual(new Date(d.startedAt).toISOString()).count()
   const history = (await getSetting<DayRecord[]>('dayHistory')) ?? []
-  await setSetting('dayHistory', [...history, { startedAt: d.startedAt, stoppedAt: now, gasKg: gasKg(now - d.startedAt), roasts }])
+  const next = [...history, { startedAt: d.startedAt, stoppedAt: now, gasKg: gasKg(now - d.startedAt), roasts }]
+  await setSetting('dayHistory', next)
+  dayState.set({ history: next })
+}
+
+/** New gas bottle: the bottle totals (time, gas) start again from zero; the roasting day keeps running. */
+export function resetBottle(now = Date.now()) {
+  dayState.set({ bottleResetAt: now })
+  save()
 }
 
 /** Watches the live ET for the start of heating. */
@@ -75,6 +93,6 @@ export async function initDay() {
     const armed = p.armed || (p.stoppedAt !== null && !sameDay(p.stoppedAt, Date.now()))
     dayState.set({ ...p, armed })
   }
-  dayState.set({ loaded: true })
+  dayState.set({ loaded: true, history: (await getSetting<DayRecord[]>('dayHistory')) ?? [] })
   session.subscribe(onSample)
 }

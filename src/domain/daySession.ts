@@ -52,3 +52,13 @@ export const fmtDuration = (ms: number) => {
   const m = Math.floor((s % 3600) / 60)
   return `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
+
+/**
+ * Burner time since the gas bottle was changed (`resetAt`, null = since the first recorded day):
+ * finished days plus the running one, each counted only after the reset.
+ */
+export function msSinceReset(resetAt: number | null, days: { startedAt: number; stoppedAt: number }[], running: { startedAt: number } | null, now: number): number {
+  const from = resetAt ?? -Infinity
+  const part = (a: number, b: number) => Math.max(0, b - Math.max(a, from))
+  return days.reduce((sum, d) => sum + part(d.startedAt, d.stoppedAt), 0) + (running ? part(running.startedAt, now) : 0)
+}

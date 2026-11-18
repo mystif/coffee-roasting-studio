@@ -91,7 +91,8 @@ export function ChargeAlert({ bt, target, fromReference, ror }: { bt: number | n
 
   const diff = bt === null ? null : bt - target
   const eta = secondsToCharge(bt, target, ror)
-  const etaText = eta === null ? '' : ` · ~${fmtTime(eta)}`
+  const at = eta === null ? '' : new Date(Date.now() + eta * 1000).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+  const etaText = eta === null ? ' · čas zatím nelze odhadnout (BT neroste)' : ` · za ~${fmtTime(eta)} (v ${at})`
   const text =
     level === 'ready'
       ? `VHOĎ KÁVU · BT ${bt!.toFixed(1)} °C`

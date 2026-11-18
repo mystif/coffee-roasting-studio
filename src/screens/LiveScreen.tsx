@@ -21,7 +21,7 @@ import { estimates, useFcTarget } from '../live/estimates'
 import { MoreMenu, NavTabs } from '../ui/nav'
 import { DELETE, askNote } from '../ui/dialog'
 import { ChargeAlert } from '../ui/ChargeAlert'
-import { ThemeToggle } from '../ui/theme'
+import { DisplayToggle, ThemeToggle } from '../ui/theme'
 import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
 
 const STATE: Record<ConnectionState, { label: string; dot: string }> = {
@@ -115,6 +115,7 @@ export function LiveScreen() {
         {error && <span className="text-sm text-rose-300">{error}</span>}
         <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
           <BackupChip />
+          <DisplayToggle />
           <ThemeToggle />
           {state.status === 'roasting' && (
             <ClayButton variant="danger" onClick={() => roast.finish()} size="sm" title="Ukončí pražení (přidá Drop, pokud chybí)">
@@ -272,7 +273,7 @@ function Readout(props: { label: string; value?: number | null; text?: string; u
         <span className="text-xs font-semibold tracking-wide" style={{ color: props.color }}>
           {props.label}
         </span>
-        {props.unit && <span className="text-[10px] text-zinc-500">{props.unit}</span>}
+        {props.unit && <span className="text-[0.625rem] text-zinc-500">{props.unit}</span>}
       </div>
       <div className="text-[1.65rem] font-semibold leading-tight tabular-nums tracking-tight" style={{ color: props.color }}>
         {display}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { detectHeatStart, fmtDuration, gasKg } from './daySession'
+import { detectHeatStart, fmtDuration, gasKg, msSinceReset } from './daySession'
 
 const series = (vals: number[]) => ({ t: vals.map((_, i) => i * 2), et: vals })
 
@@ -22,5 +22,20 @@ describe('day session', () => {
     expect(gasKg(2 * 3_600_000)).toBe(1)
     expect(gasKg(30 * 60_000)).toBe(0.25)
     expect(fmtDuration(3_723_000)).toBe('1:02:03')
+  })
+})
+
+describe('gas bottle totals', () => {
+  const H = 3_600_000
+  const days = [
+    { startedAt: 0, stoppedAt: 2 * H },
+    { startedAt: 10 * H, stoppedAt: 13 * H },
+  ]
+  it('sums finished days and the running one since the reset', () => {
+    expect(msSinceReset(null, days, null, 20 * H)).toBe(5 * H)
+    expect(msSinceReset(null, days, { startedAt: 20 * H }, 21 * H)).toBe(6 * H)
+    expect(msSinceReset(11 * H, days, null, 20 * H)).toBe(2 * H) // reset in the middle of a day counts only the rest
+    expect(msSinceReset(20.5 * H, days, { startedAt: 20 * H }, 21 * H)).toBe(0.5 * H)
+    expect(msSinceReset(30 * H, days, null, 30 * H)).toBe(0)
   })
 })

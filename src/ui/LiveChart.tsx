@@ -5,14 +5,19 @@ import type { LiveSnapshot } from '../live/LiveSession'
 import { EVENT_SHORT, findEvent, type ControlChange, type ControlKind, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR } from '../domain/phases'
 import type { ReferenceCurve } from '../domain/reference'
-import { cssVar, themeState } from './theme'
+import { chartScale, cssVar, laneScale, displayState, themeState } from './theme'
 import { rorProjection } from '../domain/predict'
 import { controlSegments, formatControl, shade, textOn, visibleBadges, type Segment } from './chartMarks'
 
 /** For DOM elements (theme-aware CSS variables). The canvas reads the resolved values via cssVar. */
 export const CURVE_COLORS = { bt: 'var(--curve-bt)', et: 'var(--curve-et)', ror: 'var(--curve-ror)' }
 
-const axis = () => ({ stroke: cssVar('--chart-axis'), grid: { stroke: cssVar('--chart-grid'), width: 1 }, ticks: { show: false } })
+const axis = () => ({
+  stroke: cssVar('--chart-axis'),
+  grid: { stroke: cssVar('--chart-grid'), width: 1 },
+  ticks: { show: false },
+  font: `${Math.round(12 * chartScale())}px Inter, system-ui, sans-serif`,
+})
 
 /** Zoom per scroll pixel (0.0015 → one mouse-wheel notch ≈ 9 %, a trackpad swipe zooms gently). */
 const ZOOM_SENSITIVITY = 0.0015
@@ -69,6 +74,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
   const clickRef = useRef({ onBtClick, onNoteClick })
   clickRef.current = { onBtClick, onNoteClick }
   const { theme } = themeState.use()
+  const { display } = displayState.use()
 
   const setFollow = (f: boolean) => {
     if (followRef.current === f) return
@@ -113,7 +119,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       axes: [
         {
           ...AXIS,
-          size: X_AXIS_SIZE,
+          size: X_AXIS_SIZE * chartScale(),
           incrs: [15, 30, 60, 120, 300, 600],
           // ticks on whole minutes of roast time (counted from CHARGE)
           splits: (_u, _ax, min, max, incr) => {
@@ -124,7 +130,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
           },
           values: (_u, splits) => splits.map((v) => fmtTime(v - (zeroT(overlayRef.current) ?? 0))),
         },
-        { ...AXIS, scale: 'temp', values: (_u, splits) => splits.map((v) => `${v}°`), size: 58 }, // wide enough for the lane captions below
+        { ...AXIS, scale: 'temp', values: (_u, splits) => splits.map((v) => `${v}°`), size: 58 * chartScale() }, // wide enough for the lane captions below
         {
           ...AXIS,
           scale: 'ror',
@@ -132,7 +138,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
           grid: { show: false },
           stroke: cssVar('--curve-ror'),
           values: (_u, splits) => splits.map((v) => `${v}`),
-          size: 40,
+          size: 46 * chartScale(), // room for the highlighted current RoR
         },
       ],
       series: [
@@ -224,7 +230,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       plot.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme]) // colours are baked into the chart → rebuild on theme change
+  }, [theme, display]) // colours and sizes are baked into the chart → rebuild on theme / monitor change
 
   useEffect(() => {
     const u = plot.current
@@ -235,7 +241,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       u.setSize({ width: u.width, height: u.height }) // recompute padding for the lanes under the axis
     }
     u.setData([snap.t, snap.bt, snap.et, snap.ror] as uPlot.AlignedData, true)
-  }, [snap, overlay, theme])
+  }, [snap, overlay, theme, display])
 
   return <div ref={wrap} className="h-full w-full" />
 }
@@ -270,7 +276,7 @@ function drawPhases(u: uPlot, o: ChartOverlay) {
 
 function drawMarks(u: uPlot, o: ChartOverlay) {
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * chartScale() // css px × monitor scale
   const { top, height, left, width } = u.bbox
   ctx.save()
   ctx.font = `700 ${13 * dpr}px Inter, system-ui, sans-serif`
@@ -302,6 +308,7 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
   }
   drawControlBadges(u, o)
   drawRorProjection(u, o)
+  drawRorValue(u)
   drawBtPoints(u, o)
   drawNotes(u, o)
   drawRefPoints(u, o)
@@ -314,7 +321,7 @@ function drawReference(u: uPlot, o: ChartOverlay) {
   const zero = zeroT(o)
   if (!ref || zero === null) return
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * chartScale() // css px × monitor scale
   const { left, top, width, height } = u.bbox
   ctx.save()
   ctx.beginPath()
@@ -363,7 +370,7 @@ const PLAN_BADGE_R = 6
 /** Room needed under the time axis for the gas/air/drum lanes (css px). */
 const lanesSpace = (o: ChartOverlay) => {
   const n = lanes(o).length
-  return n ? n * LANE_PITCH + 6 : 4
+  return (n ? n * LANE_PITCH + 6 : 4) * laneScale()
 }
 
 interface Lane {
@@ -396,13 +403,13 @@ function lanes(o: ChartOverlay): Lane[] {
   return out
 }
 
-const laneY = (u: uPlot, i: number) => u.bbox.top + u.bbox.height + (X_AXIS_SIZE + 4 + LANE_PITCH / 2 + i * LANE_PITCH) * devicePixelRatio
+const laneY = (u: uPlot, i: number) => u.bbox.top + u.bbox.height + X_AXIS_SIZE * devicePixelRatio * chartScale() + (4 + LANE_PITCH / 2 + i * LANE_PITCH) * devicePixelRatio * laneScale()
 
 function drawControlBars(u: uPlot, o: ChartOverlay) {
   const ls = lanes(o)
   if (!ls.length) return
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * laneScale()
   const { left, width } = u.bbox
   ctx.save()
   ls.forEach((lane, i) => {
@@ -432,7 +439,7 @@ function drawControlBadges(u: uPlot, o: ChartOverlay) {
   const ls = lanes(o)
   if (!ls.length) return
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * laneScale()
   const { left, width } = u.bbox
   ctx.save()
   ctx.textAlign = 'center'
@@ -472,11 +479,11 @@ function drawControlBadges(u: uPlot, o: ChartOverlay) {
   })
   // lane captions left of the plot (under the temperature axis)
   ctx.textAlign = 'right'
-  ctx.font = `600 ${8.5 * dpr}px Inter, system-ui, sans-serif`
+  ctx.font = `600 ${8.5 * devicePixelRatio * chartScale()}px Inter, system-ui, sans-serif` // must fit under the temperature axis
   const name = { gas: 'plyn', air: 'vzduch', drum: 'buben' } as const
   ls.forEach((lane, li) => {
     ctx.fillStyle = cssVar('--chart-axis')
-    ctx.fillText(`${lane.plan ? 'plán ' : ''}${name[lane.kind]}`, left - 4 * dpr, laneY(u, li))
+    ctx.fillText(`${lane.plan ? 'plán ' : ''}${name[lane.kind]}`, left - 4 * devicePixelRatio, laneY(u, li))
   })
   ctx.restore()
 }
@@ -487,7 +494,7 @@ const BT_POINTS = ['TP', 'DRY', 'FCs', 'SC'] as const
 
 function drawBtPoints(u: uPlot, o: ChartOverlay) {
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * chartScale() // css px × monitor scale
   const { left, top, width } = u.bbox
   ctx.save()
   ctx.font = `700 ${13.5 * dpr}px Inter, system-ui, sans-serif`
@@ -532,7 +539,7 @@ function drawBtPoints(u: uPlot, o: ChartOverlay) {
 function drawEstimates(u: uPlot, o: ChartOverlay) {
   if (!o.estimates?.length) return
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * chartScale() // css px × monitor scale
   const { left, top, width, height } = u.bbox
   ctx.save()
   ctx.font = `italic 700 ${13 * dpr}px Inter, system-ui, sans-serif`
@@ -574,7 +581,7 @@ function drawRefPoints(u: uPlot, o: ChartOverlay) {
   const zero = zeroT(o)
   if (!ref || zero === null) return
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * chartScale() // css px × monitor scale
   const { left, top, width, height } = u.bbox
   ctx.save()
   ctx.font = `600 ${12.5 * dpr}px Inter, system-ui, sans-serif`
@@ -622,7 +629,7 @@ function drawNotes(u: uPlot, o: ChartOverlay) {
   const notes = o.events.filter((e) => e.type === 'CUSTOM' && e.bt != null)
   if (!notes.length) return
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * chartScale() // css px × monitor scale
   const { left, top, width } = u.bbox
   ctx.save()
   ctx.font = `600 ${13 * dpr}px Inter, system-ui, sans-serif`
@@ -672,7 +679,7 @@ function drawRorProjection(u: uPlot, o: ChartOverlay) {
   const p = rorProjection(t, ror, maillard ? 0.5 : 0)
   if (!p) return
   const ctx = u.ctx
-  const dpr = devicePixelRatio
+  const dpr = devicePixelRatio * chartScale() // css px × monitor scale
   const x0 = u.valToPos(p.t0, 'x', true)
   const y0 = u.valToPos(p.r0, 'ror', true)
   const x1 = u.valToPos(p.t1, 'x', true)
@@ -692,5 +699,36 @@ function drawRorProjection(u: uPlot, o: ChartOverlay) {
   ctx.textBaseline = 'middle'
   ctx.fillStyle = cssVar('--curve-ror')
   ctx.fillText(`~${p.r1.toFixed(1).replace('.', ',')}`, x1 + 4 * dpr, y1)
+  ctx.restore()
+}
+
+// ── current RoR highlighted on the RoR scale (right axis): big bold number in a tag ──
+function drawRorValue(u: uPlot) {
+  const ror = u.data[3] as (number | null)[]
+  let v: number | null = null
+  for (let i = ror.length - 1; i >= 0 && i >= ror.length - 3; i--) if (ror[i] != null) { v = ror[i]; break }
+  if (v === null) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio * chartScale()
+  const { left, top, width, height } = u.bbox
+  const y = Math.min(top + height, Math.max(top, u.valToPos(v, 'ror', true)))
+  const x = left + width + 2 * dpr
+  const text = v.toFixed(1).replace('.', ',')
+  ctx.save()
+  ctx.font = `800 ${14 * dpr}px Inter, system-ui, sans-serif`
+  const w = ctx.measureText(text).width + 10 * dpr
+  const h = 20 * dpr
+  ctx.fillStyle = cssVar('--curve-ror')
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+  ctx.lineTo(x + 6 * dpr, y - h / 2)
+  ctx.lineTo(x + 6 * dpr + w, y - h / 2)
+  ctx.lineTo(x + 6 * dpr + w, y + h / 2)
+  ctx.lineTo(x + 6 * dpr, y + h / 2)
+  ctx.closePath()
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(text, x + 11 * dpr, y + 0.5 * dpr)
   ctx.restore()
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useRoastState } from '../live/runtime'
 import { BackupChip } from './storageUi'
-import { ThemeToggle } from './theme'
+import { DisplayToggle, ThemeToggle } from './theme'
 
 export type Route =
   | { name: 'live' }
@@ -82,6 +82,7 @@ export function Page({ title, actions, children }: { title: string; actions?: Re
         <NavTabs />
         <div className="ml-auto flex items-center gap-2">
           <BackupChip />
+          <DisplayToggle />
           <ThemeToggle />
           <a href="#/diagnostika" className="px-2 text-sm text-zinc-500 hover:text-zinc-200">
             Diagnostika
