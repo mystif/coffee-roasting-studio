@@ -4,7 +4,7 @@ import { addCoffee, emptyCoffee } from '../storage/coffees'
 import { db } from '../storage/db'
 import { profileChoice } from '../storage/profiles'
 import { EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
-import { PHASE_COLOR, PHASE_TEXT, PHASE_LABEL, currentPhase, phaseStats } from '../domain/phases'
+import { PHASE_COLOR, PHASE_TEXT, PHASE_LABEL, currentPhase, phaseProgress, phaseStats } from '../domain/phases'
 import { AIR_PRESETS, GAS_PRESETS, type RoastState } from '../live/roastStore'
 
 /** Drum speed knob 0–100, in steps of 5. */
@@ -142,7 +142,18 @@ export function EventPanel({ state }: { state: RoastState }) {
 
 // ── phase strip ────────────────────────────────────────────
 
-export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: number | null; est?: import('../live/estimates').Estimate[] }) {
+export function PhaseStrip({
+  state,
+  now,
+  est = [],
+  dtrGoal = { target: 20, fromReference: false },
+}: {
+  state: RoastState
+  now: number | null
+  est?: import('../live/estimates').Estimate[]
+  /** DTR target for the ring (reference DTR or the default) */
+  dtrGoal?: { target: number; fromReference: boolean }
+}) {
   const stats = now === null ? null : phaseStats(state.events, now)
   const phase = currentPhase(state.events)
   const fcs = findEvent(state.events, 'FCs')
@@ -152,6 +163,7 @@ export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: n
   const estDE = est.find((e) => e.type === 'DRY')
   const estFC = est.find((e) => e.type === 'FCs')
   const rel = (t: number) => fmtTime(t - (charge?.t ?? 0))
+  const progress = now === null ? null : phaseProgress(state.events, now, { DRY: estDE?.inSec, FCs: estFC?.inSec }, dtrGoal.target)
   const hint = (e?: import('../live/estimates').Estimate) =>
     e ? (
       <span className="truncate text-xs font-semibold text-zinc-300" title={`Odhad podle aktuální RoR, cíl ${e.target.toFixed(1)} °C (${e.basis})`}>
@@ -160,7 +172,7 @@ export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: n
     ) : null
   const seg = (name: 'drying' | 'maillard' | 'development', sec: number | null, pct: number | null, estimate?: import('../live/estimates').Estimate) => (
     <div
-      className="flex min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-0.5"
+      className="relative flex min-w-0 items-center justify-between gap-2 overflow-hidden rounded-lg px-2.5 py-0.5"
       style={{
         flexGrow: Math.max(pct ?? 0, 8),
         background: PHASE_COLOR[name] + (phase === name ? '33' : '1a'),
@@ -177,6 +189,14 @@ export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: n
           {sec == null ? '—' : fmtTime(sec)} <span className="text-zinc-400">{pct == null ? '' : `${pct.toFixed(0)} %`}</span>
         </span>
       )}
+      {/* progress of the running phase towards the estimated next event / target DTR */}
+      {progress?.phase === name && (
+        <span
+          className="absolute bottom-0 left-0 h-[3px] rounded-r transition-[width] duration-700"
+          style={{ width: `${progress.progress * 100}%`, background: PHASE_COLOR[name] }}
+          title={`${Math.round(progress.progress * 100)} % fáze`}
+        />
+      )}
     </div>
   )
   return (
@@ -191,7 +211,37 @@ export function PhaseStrip({ state, now, est = [] }: { state: RoastState; now: n
       ) : (
         <Mini label="od FC" value={sinceFc === null ? '—' : fmtTime(sinceFc)} />
       )}
-      <Mini label="DTR" value={stats?.dtr == null ? '—' : `${stats.dtr.toFixed(1)} %`} />
+      <DtrRing dtr={stats?.dtr ?? null} goal={dtrGoal} />
+    </div>
+  )
+}
+
+/** DTR with a ring that fills towards the target DTR: green around the target, red when clearly over. */
+function DtrRing({ dtr, goal }: { dtr: number | null; goal: { target: number; fromReference: boolean } }) {
+  const f = dtr == null ? 0 : dtr / goal.target
+  const color = dtr == null ? 'var(--chart-axis)' : f > 1.08 ? 'var(--color-rose-400)' : f >= 0.92 ? 'var(--color-emerald-400)' : 'var(--color-amber-400)'
+  const r = 9
+  const c = 2 * Math.PI * r
+  return (
+    <div className="flex items-center gap-1.5 whitespace-nowrap" title={`Cíl DTR ${goal.target.toFixed(1)} % (${goal.fromReference ? 'z reference' : 'výchozí'})`}>
+      <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
+        <circle cx="12" cy="12" r={r} fill="none" stroke="var(--c-border)" strokeWidth="3" />
+        <circle
+          cx="12"
+          cy="12"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - Math.min(1, f))}
+          style={{ transition: 'stroke-dashoffset .7s ease, stroke .3s' }}
+        />
+      </svg>
+      <span className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">DTR</span>
+      <span className="text-lg font-semibold tabular-nums">{dtr == null ? '—' : `${dtr.toFixed(1)} %`}</span>
+      <span className="text-[0.6875rem] tabular-nums text-zinc-500">/ {goal.target.toFixed(0)}</span>
     </div>
   )
 }

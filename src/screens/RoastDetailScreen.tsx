@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type uPlot from 'uplot'
 import { alogFileName, recordToAlog } from '../io/alogExport'
 import { chartToPng, download, recordToCsv } from '../io/exportFiles'
+import { resultCardPng } from '../io/resultCard'
 import { backupFileName } from '../storage/roastRecord'
 import { computeRoR } from '../domain/ror'
 import { CONTROL_UNIT, EVENT_LABEL, findEvent, type ControlKind, type EventType } from '../domain/events'
@@ -139,6 +140,12 @@ function Detail({ r }: { r: RoastRecord }) {
               CSV
             </ClayButton>
             <ClayButton onClick={() => void exportPng()}>PNG graf</ClayButton>
+            <ClayButton
+              onClick={async () => chart.current && download(`${base}-karta.png`, await resultCardPng(chart.current, r), 'image/png')}
+              title="Obrázek 1080×1350: křivka, čísla a fáze – ke sdílení nebo na sáček"
+            >
+              Karta pražení
+            </ClayButton>
             <ClayButton onClick={() => download(backupFileName(r), JSON.stringify(r, null, 1), 'application/json')} title="Kompletní záznam pražení">
               JSON
             </ClayButton>

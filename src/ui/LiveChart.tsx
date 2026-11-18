@@ -4,7 +4,7 @@ import 'uplot/dist/uPlot.min.css'
 import type { LiveSnapshot } from '../live/LiveSession'
 import { EVENT_SHORT, findEvent, type ControlChange, type ControlKind, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR } from '../domain/phases'
-import type { ReferenceCurve } from '../domain/reference'
+import { valueAt, type ReferenceCurve } from '../domain/reference'
 import { chartScale, cssVar, laneScale, displayState, themeState } from './theme'
 import { controlSegments, formatControl, shade, textOn, visibleBadges, type Segment } from './chartMarks'
 
@@ -193,6 +193,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       hooks: {
         drawClear: [(u) => drawPhases(u, overlayRef.current), (u) => drawControlBars(u, overlayRef.current), (u) => drawReference(u, overlayRef.current)],
         draw: [(u) => drawMarks(u, overlayRef.current), (u) => placeRorDot(u, overlayRef.current)],
+        setCursor: [(u) => placeTip(u, overlayRef.current)],
         setSelect: [
           (u) => {
             if (u.select.width < 4) return
@@ -350,6 +351,7 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.fillText(label, x + 8 * dpr, y + 3 * dpr)
   }
   drawControlBadges(u, o)
+  drawNowLine(u, o)
   drawRorValue(u)
   drawBtPoints(u, o)
   drawNotes(u, o)
@@ -357,6 +359,9 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
   drawEstimates(u, o)
   ctx.restore()
 }
+
+/** Half width of the tolerance band around the reference BT (°C). */
+const TOLERANCE_C = 3
 
 function drawReference(u: uPlot, o: ChartOverlay) {
   const ref = o.reference
@@ -389,6 +394,29 @@ function drawReference(u: uPlot, o: ChartOverlay) {
     }
     ctx.stroke()
   }
+  // ±TOLERANCE_C band around the reference BT: shows at a glance when the roast leaves the profile
+  ctx.fillStyle = withAlpha(cssVar('--curve-bt'), 0.09)
+  let seg: number[] = []
+  const flush = () => {
+    if (seg.length > 1) {
+      ctx.beginPath()
+      seg.forEach((i, k) => {
+        const px = u.valToPos(zero + ref.t[i], 'x', true)
+        const py = u.valToPos((ref.bt[i] as number) + TOLERANCE_C, 'temp', true)
+        if (k) ctx.lineTo(px, py)
+        else ctx.moveTo(px, py)
+      })
+      for (let k = seg.length - 1; k >= 0; k--) ctx.lineTo(u.valToPos(zero + ref.t[seg[k]], 'x', true), u.valToPos((ref.bt[seg[k]] as number) - TOLERANCE_C, 'temp', true))
+      ctx.closePath()
+      ctx.fill()
+    }
+    seg = []
+  }
+  for (let i = 0; i < ref.t.length; i++) {
+    if (ref.bt[i] === null) flush()
+    else seg.push(i)
+  }
+  flush()
   line(ref.et, 'temp', cssVar('--chart-ref-et'), 1.5)
   line(ref.bt, 'temp', cssVar('--chart-ref-bt'), 2)
   line(ref.ror, 'ror', cssVar('--chart-ref-ror'), 1.5)
@@ -574,6 +602,9 @@ function drawBtPoints(u: uPlot, o: ChartOverlay) {
   ctx.restore()
 }
 
+/** From this many seconds before the expected FC the estimate turns into a countdown. */
+const FC_COUNTDOWN_SEC = 60
+
 // ── estimated Dry End / First Crack: dotted line + target point on BT ──
 function drawEstimates(u: uPlot, o: ChartOverlay) {
   if (!o.estimates?.length) return
@@ -587,8 +618,11 @@ function drawEstimates(u: uPlot, o: ChartOverlay) {
     const x = u.valToPos(e.t, 'x', true)
     if (x < left || x > left + width) continue
     const y = u.valToPos(e.target, 'temp', true)
+    // the last minute before the expected First Crack: stronger label with a countdown
+    const inSec = o.now === null ? null : e.t - o.now
+    const soon = e.type === 'FCs' && inSec !== null && inSec > 0 && inSec <= FC_COUNTDOWN_SEC
     ctx.strokeStyle = cssVar('--curve-bt')
-    ctx.globalAlpha = 0.55
+    ctx.globalAlpha = soon ? 0.95 : 0.55
     ctx.setLineDash([2 * dpr, 4 * dpr])
     ctx.lineWidth = 1.5 * dpr
     ctx.beginPath()
@@ -601,6 +635,20 @@ function drawEstimates(u: uPlot, o: ChartOverlay) {
     ctx.lineWidth = 2 * dpr
     ctx.stroke()
     ctx.globalAlpha = 1
+    if (soon) {
+      ctx.font = `800 ${15 * dpr}px Inter, system-ui, sans-serif`
+      const label = `FC za ${fmtTime(inSec!)}`
+      const w = ctx.measureText(label).width + 16 * dpr
+      const bx = Math.min(x + 4 * dpr, left + width - w)
+      ctx.fillStyle = cssVar('--curve-bt')
+      ctx.beginPath()
+      ctx.roundRect(bx, top + 28 * dpr, w, 24 * dpr, 6 * dpr)
+      ctx.fill()
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText(label, bx + 8 * dpr, top + 32 * dpr)
+      ctx.font = `italic 700 ${13 * dpr}px Inter, system-ui, sans-serif`
+      continue
+    }
     const label = `~${EVENT_SHORT[e.type]} ${o.chargeT === null ? '' : fmtTime(e.t - o.chargeT)}`
     const w = ctx.measureText(label).width + 12 * dpr
     const bx = Math.min(x + 4 * dpr, left + width - w)
@@ -759,4 +807,94 @@ function placeRorDot(u: uPlot, o: ChartOverlay) {
   dot.style.width = dot.style.height = `${size}px`
   dot.style.left = `${x}px`
   dot.style.top = `${u.valToPos(v!, 'ror')}px`
+}
+
+// ── "now" line: thin vertical line at the latest reading with the roast time in a pill on the time axis ──
+function drawNowLine(u: uPlot, o: ChartOverlay) {
+  const t = u.data[0] as number[]
+  const last = t.at(-1)
+  if (last === undefined || findEvent(o.events, 'DROP')) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio * chartScale()
+  const { left, top, width, height } = u.bbox
+  const x = u.valToPos(last, 'x', true)
+  if (x < left || x > left + width) return
+  ctx.save()
+  ctx.strokeStyle = cssVar('--chart-label')
+  ctx.globalAlpha = 0.3
+  ctx.lineWidth = devicePixelRatio
+  ctx.beginPath()
+  ctx.moveTo(x, top)
+  ctx.lineTo(x, top + height)
+  ctx.stroke()
+  ctx.globalAlpha = 1
+  const zero = zeroT(o)
+  const text = fmtTime(zero === null ? last - (t[0] ?? 0) : last - zero)
+  ctx.font = `700 ${11 * dpr}px Inter, system-ui, sans-serif`
+  const w = ctx.measureText(text).width + 12 * dpr
+  const h = 17 * dpr
+  const bx = Math.min(Math.max(x - w / 2, left), left + width - w)
+  ctx.fillStyle = cssVar('--chart-label')
+  ctx.beginPath()
+  ctx.roundRect(bx, top + height + 3 * dpr, w, h, h / 2)
+  ctx.fill()
+  ctx.fillStyle = cssVar('--c-chart')
+  ctx.textBaseline = 'middle'
+  ctx.textAlign = 'center'
+  ctx.fillText(text, bx + w / 2, top + height + 3 * dpr + h / 2 + 0.5 * dpr)
+  ctx.restore()
+}
+
+// ── hover detail: values at the cursor, the gas/air set at that moment and the deviation from the reference ──
+function placeTip(u: uPlot, o: ChartOverlay) {
+  let tip = u.over.querySelector<HTMLDivElement>('.chart-tip')
+  if (!tip) {
+    tip = document.createElement('div')
+    tip.className = 'chart-tip'
+    u.over.appendChild(tip)
+  }
+  const { left, top, idx } = u.cursor
+  const xs = u.data[0] as number[]
+  if (idx == null || left == null || top == null || left < 0 || !xs.length) {
+    tip.style.display = 'none'
+    return
+  }
+  const t = xs[idx]
+  const val = (k: number) => (u.data[k] as (number | null)[])[idx]
+  const f1 = (v: number | null | undefined) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
+  const zero = zeroT(o)
+  const at = (kind: ControlKind) => {
+    let v: number | null = null
+    for (const c of o.controls) if (c.kind === kind && c.t <= t) v = c.value
+    return v === null ? '—' : formatControl(kind, v)
+  }
+  const rows: [string, string, string][] = [
+    ['BT', `${f1(val(1))} °C`, 'var(--curve-bt)'],
+    ['ET', `${f1(val(2))} °C`, 'var(--curve-et)'],
+    ['RoR', f1(val(3)), 'var(--curve-ror)'],
+  ]
+  if (o.controls.length) {
+    rows.push(['plyn', `${at('gas')} kPa`, 'var(--chart-axis)'])
+    rows.push(['vzduch', `${at('air')} %`, 'var(--chart-axis)'])
+  }
+  const bt = val(1)
+  if (o.reference && zero !== null && bt != null) {
+    const r = valueAt(o.reference.t, o.reference.bt, t - zero)
+    if (r !== null) {
+      const d = bt - r
+      const color = Math.abs(d) <= TOLERANCE_C ? 'var(--color-emerald-400)' : 'var(--color-rose-400)'
+      rows.push(['vs ref', `${d >= 0 ? '+' : '−'}${f1(Math.abs(d))} °C`, color])
+    }
+  }
+  const time = fmtTime(zero === null ? t - xs[0] : t - zero)
+  tip.innerHTML =
+    `<div class="chart-tip-time">${time}</div>` +
+    rows.map(([k, v, c]) => `<div class="chart-tip-row"><span style="color:${c}">${k}</span><b>${v}</b></div>`).join('')
+  tip.style.display = 'block'
+  tip.style.fontSize = `${12 * chartScale()}px`
+  const w = tip.offsetWidth
+  const h = tip.offsetHeight
+  const x = left + 16 + w > u.over.clientWidth ? left - 16 - w : left + 16
+  tip.style.left = `${Math.max(0, x)}px`
+  tip.style.top = `${Math.min(Math.max(0, top - h / 2), u.over.clientHeight - h)}px`
 }
