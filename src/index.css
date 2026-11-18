@@ -122,3 +122,36 @@ select,
 textarea {
   border: 1px solid var(--c-border);
 }
+
+/* live end of the RoR curve: a dot with a soft pulse */
+.ror-pulse {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--curve-ror);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--c-chart);
+}
+.ror-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--curve-ror);
+  animation: ror-pulse 1.6s ease-out infinite;
+}
+@keyframes ror-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ror-pulse::after {
+    animation: none;
+  }
+}

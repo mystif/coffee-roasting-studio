@@ -6,7 +6,6 @@ import { EVENT_SHORT, findEvent, type ControlChange, type ControlKind, type Roas
 import { PHASE_COLOR } from '../domain/phases'
 import type { ReferenceCurve } from '../domain/reference'
 import { chartScale, cssVar, laneScale, displayState, themeState } from './theme'
-import { rorProjection } from '../domain/predict'
 import { controlSegments, formatControl, shade, textOn, visibleBadges, type Segment } from './chartMarks'
 
 /** For DOM elements (theme-aware CSS variables). The canvas reads the resolved values via cssVar. */
@@ -193,7 +192,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       ],
       hooks: {
         drawClear: [(u) => drawPhases(u, overlayRef.current), (u) => drawControlBars(u, overlayRef.current), (u) => drawReference(u, overlayRef.current)],
-        draw: [(u) => drawMarks(u, overlayRef.current)],
+        draw: [(u) => drawMarks(u, overlayRef.current), (u) => placeRorDot(u, overlayRef.current)],
         setSelect: [
           (u) => {
             if (u.select.width < 4) return
@@ -351,7 +350,6 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.fillText(label, x + 8 * dpr, y + 3 * dpr)
   }
   drawControlBadges(u, o)
-  drawRorProjection(u, o)
   drawRorValue(u)
   drawBtPoints(u, o)
   drawNotes(u, o)
@@ -707,41 +705,6 @@ function drawNotes(u: uPlot, o: ChartOverlay) {
   ctx.restore()
 }
 
-// ── RoR projection: thin dotted continuation of the RoR curve (estimate, not a measurement) ──
-function drawRorProjection(u: uPlot, o: ChartOverlay) {
-  if (o.chargeT === null || findEvent(o.events, 'DROP')) return
-  const tp = findEvent(o.events, 'TP')
-  const t = u.data[0] as number[]
-  const ror = u.data[3] as (number | null)[]
-  const last = t.at(-1)
-  if (last === undefined || last < (tp?.t ?? o.chargeT + 90) + 60) return
-  // trend only in Maillard (where it was more accurate on the user's roasts), flat otherwise
-  const maillard = !!findEvent(o.events, 'DRY') && !findEvent(o.events, 'FCs')
-  const p = rorProjection(t, ror, maillard ? 0.5 : 0)
-  if (!p) return
-  const ctx = u.ctx
-  const dpr = devicePixelRatio * chartScale() // css px × monitor scale
-  const x0 = u.valToPos(p.t0, 'x', true)
-  const y0 = u.valToPos(p.r0, 'ror', true)
-  const x1 = u.valToPos(p.t1, 'x', true)
-  const y1 = u.valToPos(p.r1, 'ror', true)
-  ctx.save()
-  ctx.strokeStyle = cssVar('--curve-ror')
-  ctx.globalAlpha = 0.8
-  ctx.lineWidth = 1.25 * dpr
-  ctx.setLineDash([1.5 * dpr, 3.5 * dpr])
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  ctx.moveTo(x0, y0)
-  ctx.lineTo(x1, y1)
-  ctx.stroke()
-  ctx.setLineDash([])
-  ctx.font = `italic 600 ${11 * dpr}px Inter, system-ui, sans-serif`
-  ctx.textBaseline = 'middle'
-  ctx.fillStyle = cssVar('--curve-ror')
-  ctx.fillText(`~${p.r1.toFixed(1).replace('.', ',')}`, x1 + 4 * dpr, y1)
-  ctx.restore()
-}
 
 // ── current RoR highlighted on the RoR scale (right axis): big bold number in a tag ──
 function drawRorValue(u: uPlot) {
@@ -772,4 +735,28 @@ function drawRorValue(u: uPlot) {
   ctx.textBaseline = 'middle'
   ctx.fillText(text, x + 11 * dpr, y + 0.5 * dpr)
   ctx.restore()
+}
+
+// ── pulsing dot at the live end of the RoR curve (a DOM element, so it can animate between redraws) ──
+function placeRorDot(u: uPlot, o: ChartOverlay) {
+  let dot = u.over.querySelector<HTMLDivElement>('.ror-pulse')
+  if (!dot) {
+    dot = document.createElement('div')
+    dot.className = 'ror-pulse'
+    u.over.appendChild(dot)
+  }
+  const t = u.data[0] as number[]
+  const ror = u.data[3] as (number | null)[]
+  const i = ror.length - 1
+  const v = i >= 0 ? ror[i] : null
+  const { min, max } = u.scales.ror
+  const live = !findEvent(o.events, 'DROP')
+  const x = v == null ? NaN : u.valToPos(t[i], 'x')
+  const visible = live && v != null && min != null && max != null && v >= min && v <= max && x >= 0 && x <= u.over.clientWidth
+  dot.style.display = visible ? 'block' : 'none'
+  if (!visible) return
+  const size = 9 * chartScale()
+  dot.style.width = dot.style.height = `${size}px`
+  dot.style.left = `${x}px`
+  dot.style.top = `${u.valToPos(v!, 'ror')}px`
 }
