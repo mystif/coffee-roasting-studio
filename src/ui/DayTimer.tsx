@@ -21,10 +21,15 @@ function Bottle({ ms, since }: { ms: number; since: number | null | undefined })
       <b className={`tabular-nums ${LEVEL_COLOR[bottleLevel(gasKg(ms))]}`}>{kg(gasKg(ms)).replace(' kg', '')}</b>/{BOTTLE_KG}
       <button
         className="rounded-md px-1 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-        title="Vyměnil jsem láhev – vynulovat celkový čas a spotřebu"
+        title="Vyměnil jsem láhev – vynulovat láhev i den pražení"
         onClick={async () => {
-          if (await askConfirm('Nová láhev plynu?', { message: `Vynuluje celkový čas ${fmtDuration(ms)} a spotřebu ~${kg(gasKg(ms))} od poslední výměny. Den pražení běží dál.`, okLabel: 'Vynulovat' }))
-            resetBottle()
+          if (
+            await askConfirm('Nová láhev plynu?', {
+              message: `Vynuluje všechny ukazatele: láhev (${fmtDuration(ms)}, ~${kg(gasKg(ms))}) i den pražení – čas, plyn a počet dávek začnou od nuly.`,
+              okLabel: 'Vynulovat vše',
+            })
+          )
+            void resetBottle()
         }}
       >
         ⟲

@@ -65,9 +65,20 @@ export async function stopDay(now = Date.now()) {
   dayState.set({ history: next })
 }
 
-/** New gas bottle: the bottle totals (time, gas) start again from zero; the roasting day keeps running. */
-export function resetBottle(now = Date.now()) {
-  dayState.set({ bottleResetAt: now })
+/**
+ * New gas bottle: every counter starts again from zero – the bottle totals and the roasting day
+ * (time, gas, batches). A running day keeps running from now; its part so far is kept in the day history.
+ */
+export async function resetBottle(now = Date.now()) {
+  const d = dayState.get()
+  const running = d.startedAt !== null && d.stoppedAt === null
+  let history = (await getSetting<DayRecord[]>('dayHistory')) ?? []
+  if (running && now > d.startedAt!) {
+    const roasts = await db.roasts.where('roastDate').aboveOrEqual(new Date(d.startedAt!).toISOString()).count()
+    history = [...history, { startedAt: d.startedAt!, stoppedAt: now, gasKg: gasKg(now - d.startedAt!), roasts }]
+    await setSetting('dayHistory', history)
+  }
+  dayState.set({ bottleResetAt: now, history, ...(running ? { startedAt: now } : { startedAt: null, stoppedAt: null, reason: null, armed: true }) })
   save()
 }
 

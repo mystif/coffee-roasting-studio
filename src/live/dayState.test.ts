@@ -46,4 +46,24 @@ describe('roasting day', () => {
     for (let s = 0; s < 60; s++) c.session.add(s * 1000, 25, 22 + s)
     expect(c.dayState.get().startedAt).toBeNull()
   })
+
+  it('a new gas bottle resets the bottle and the running day, keeping the part so far in the history', async () => {
+    const a = await boot()
+    await a.db.settings.clear()
+    const b = await boot()
+    const H = 3_600_000
+    const t0 = Date.parse('2026-11-18T07:00:00Z')
+    b.startDay(t0, 'manual')
+    await b.resetBottle(t0 + 2 * H)
+    expect(b.dayState.get()).toMatchObject({ startedAt: t0 + 2 * H, stoppedAt: null, bottleResetAt: t0 + 2 * H })
+    const history = (await b.db.settings.get('dayHistory'))?.value as { startedAt: number; stoppedAt: number }[]
+    expect(history.at(-1)).toMatchObject({ startedAt: t0, stoppedAt: t0 + 2 * H })
+    await wait(30)
+    const c = await boot() // survives a reload
+    expect(c.dayState.get()).toMatchObject({ startedAt: t0 + 2 * H, bottleResetAt: t0 + 2 * H })
+    // a stopped day is cleared completely
+    await c.stopDay(t0 + 3 * H)
+    await c.resetBottle(t0 + 4 * H)
+    expect(c.dayState.get()).toMatchObject({ startedAt: null, stoppedAt: null, bottleResetAt: t0 + 4 * H })
+  })
 })
