@@ -31,6 +31,7 @@
   --curve-ror: #ffd166;
   --chart-axis: #9aa0ac;
   --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-logo-opacity: 0.07;
   --chart-label-bg: rgba(30, 32, 40, 0.92);
   --chart-label: #ffffff;
   --chart-label-auto: #cbd5e1;
@@ -63,6 +64,7 @@
   --curve-ror: #c98600;
   --chart-axis: #5b6170;
   --chart-grid: rgba(20, 24, 40, 0.07);
+  --chart-logo-opacity: 0.16;
   --chart-label-bg: rgba(255, 255, 255, 0.94);
   --chart-label: #15171c;
   --chart-label-auto: #4b5260;
