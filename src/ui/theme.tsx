@@ -57,22 +57,18 @@ export function setDisplay(display: Display) {
   displayState.set({ display })
 }
 
+/** One button in the header: shows the current monitor size, a click switches to the other one. */
 export function DisplayToggle() {
   const { display } = displayState.use()
-  const opt = (d: Display, label: string, title: string) => (
-    <button
-      onClick={() => setDisplay(d)}
-      title={title}
-      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${display === d ? 'bg-[var(--c-active)] text-zinc-100' : 'text-zinc-500 hover:text-zinc-200'}`}
-    >
-      {label}
-    </button>
-  )
+  const next: Display = display === 'large' ? 'small' : 'large'
   return (
-    <div className="flex shrink-0 rounded-full bg-[var(--c-chip)] p-0.5 border border-[var(--c-border)]">
-      {opt('small', '13″', 'Malý monitor (13,3″ MacBook)')}
-      {opt('large', '27″', 'Velký monitor (27″, 1920×1080) – větší písmo a čísla')}
-    </div>
+    <button
+      onClick={() => setDisplay(next)}
+      title={display === 'large' ? 'Velký monitor (27″, 1920×1080) – kliknutím přepneš na 13″' : 'Malý monitor (13,3″ MacBook) – kliknutím přepneš na 27″'}
+      className="flex h-7 shrink-0 items-center rounded-full border border-[var(--c-border)] bg-[var(--c-chip)] px-2 text-xs font-semibold tabular-nums text-zinc-200 hover:bg-[var(--c-active)]"
+    >
+      {display === 'large' ? '27″' : '13″'}
+    </button>
   )
 }
 

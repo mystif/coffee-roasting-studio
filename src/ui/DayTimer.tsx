@@ -16,9 +16,9 @@ const LEVEL_COLOR = { ok: 'text-emerald-400', low: 'text-amber-400', empty: 'tex
 /** Totals since the last gas-bottle change, with a reset for a new bottle. */
 function Bottle({ ms, since }: { ms: number; since: number | null | undefined }) {
   return (
-    <span className="flex items-center gap-1 text-[0.625rem] text-zinc-500" title={bottleTitle(since)}>
-      láhev <span className="tabular-nums text-zinc-400">{fmtDuration(ms)}</span> ·{' '}
-      <b className={`tabular-nums ${LEVEL_COLOR[bottleLevel(gasKg(ms))]}`}>{kg(gasKg(ms)).replace(' kg', '')}</b> / {BOTTLE_KG} kg
+    <span className="flex items-center gap-1 text-[0.625rem] text-zinc-500" title={`${bottleTitle(since)} · provoz ${fmtDuration(ms)}`}>
+      láhev{' '}
+      <b className={`tabular-nums ${LEVEL_COLOR[bottleLevel(gasKg(ms))]}`}>{kg(gasKg(ms)).replace(' kg', '')}</b>/{BOTTLE_KG}
       <button
         className="rounded-md px-1 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
         title="Vyměnil jsem láhev – vynulovat celkový čas a spotřebu"
@@ -33,8 +33,11 @@ function Bottle({ ms, since }: { ms: number; since: number | null | undefined })
   )
 }
 
-/** Total time of the roasting day and estimated gas use (shown in the bottom bar). */
-export function DayTimer({ batchSec = null, compact = false }: { batchSec?: number | null; compact?: boolean } = {}) {
+/**
+ * Roasting day as a small chip in the header: day time, estimated gas of the day and the gas
+ * bottle totals; Start / Stop of the day. Batch gas and the number of batches are in the tooltip.
+ */
+export function DayTimer({ batchSec = null }: { batchSec?: number | null } = {}) {
   const d = dayState.use()
   const [now, setNow] = useState(Date.now())
   const running = d.startedAt !== null && d.stoppedAt === null
@@ -49,95 +52,45 @@ export function DayTimer({ batchSec = null, compact = false }: { batchSec?: numb
     [d.startedAt, d.stoppedAt],
   )
 
-  const box = 'ml-auto flex items-center gap-3 rounded-lg bg-[var(--c-bg)] px-3 py-1'
-  const btn = 'rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wide'
+  const chip = 'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-[var(--c-border)] bg-[var(--c-chip)] py-0.5 pl-2.5 pr-1 text-xs text-zinc-400'
+  const btn = 'rounded-full px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide'
 
-  if (d.startedAt === null && compact) {
+  if (d.startedAt === null)
     return (
-      <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-[0.6875rem] text-zinc-500">
-        <Bottle ms={bottleMs} since={d.bottleResetAt} />
+      <div className={chip} title="Den se spustí sám, jakmile začne stoupat ET (zapálený hořák)">
         den čeká na nahřívání
-        <button className="rounded-md bg-[var(--c-raised)] px-2 py-0.5 text-[0.625rem] font-bold uppercase text-zinc-200" onClick={() => startDay(Date.now(), 'manual')}>
-          Start
-        </button>
-      </div>
-    )
-  }
-  if (d.startedAt === null) {
-    return (
-      <div className={box} title="Den se spustí sám, jakmile začne stoupat ET (zapálený hořák)">
-        <span className="whitespace-nowrap text-xs text-zinc-400">
-          Den pražení
-          <br />
-          <span className="text-zinc-500">čeká na nahřívání (ET)</span>
-        </span>
-        <button className={`${btn} bg-[var(--c-raised)] text-zinc-200`} onClick={() => startDay(Date.now(), 'manual')}>
-          Start
-        </button>
-      </div>
-    )
-  }
-
-  const end = d.stoppedAt ?? now
-  if (compact && d.startedAt !== null) {
-    const ms2 = end - d.startedAt
-    return (
-      <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-[0.6875rem] text-zinc-400" title={`Den pražení od ${new Date(d.startedAt).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })} · plyn ${GAS_KG_PER_HOUR} kg/h`}>
-        <span>
-          den <b className="tabular-nums text-zinc-200">{fmtDuration(ms2)}</b>
-        </span>
-        <span>
-          plyn <b className="tabular-nums text-orange-300">{kg(gasKg(ms2))}</b>
-        </span>
-        {batchSec !== null && (
-          <span>
-            dávka <b className="tabular-nums text-orange-300">{kg(gasKg(batchSec * 1000))}</b>
-          </span>
-        )}
-        <span>{dávky(roasts ?? 0)}</span>
         <Bottle ms={bottleMs} since={d.bottleResetAt} />
-        {!d.stoppedAt && (
-          <button
-            className="rounded-md bg-rose-500 hover:bg-rose-400 px-2 py-0.5 text-[0.625rem] font-bold uppercase text-white"
-            onClick={async () => {
-              if (await askConfirm('Ukončit den pražení?', { message: `${fmtDuration(ms2)} · plyn ~${kg(gasKg(ms2))} · ${dávky(roasts ?? 0)}`, okLabel: 'Ukončit den', danger: true }))
-                void stopDay()
-            }}
-          >
-            Stop
-          </button>
-        )}
+        <button className={`${btn} bg-[var(--c-raised)] text-zinc-200 hover:bg-[var(--c-active)]`} onClick={() => startDay(Date.now(), 'manual')}>
+          Start
+        </button>
       </div>
     )
-  }
-  const ms = end - d.startedAt
+
+  const ms = (d.stoppedAt ?? now) - d.startedAt
   const since = new Date(d.startedAt).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
-  const title = `Od ${since} (${d.reason === 'et' ? 'start podle náběhu ET' : d.reason === 'hot' ? 'pražička už byla horká při připojení' : 'spuštěno ručně'}). Plyn: odhad ${GAS_KG_PER_HOUR} kg/h provozu.`
+  const reason = d.reason === 'et' ? 'start podle náběhu ET' : d.reason === 'hot' ? 'pražička už byla horká při připojení' : 'spuštěno ručně'
+  const title = [
+    `Den pražení od ${since} (${reason}), ${d.stoppedAt ? 'ukončen, ' : ''}${fmtDuration(ms)}`,
+    `${dávky(roasts ?? 0)}`,
+    batchSec !== null ? `plyn této dávky ~${kg(gasKg(batchSec * 1000))}` : null,
+    `odhad ${GAS_KG_PER_HOUR} kg/h provozu`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
   return (
-    <div className={box} title={title}>
-      <div className="leading-tight">
-        <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-500">{d.stoppedAt ? 'Den ukončen' : `Den od ${since}`}</div>
-        <div className="text-xl font-semibold tabular-nums">{fmtDuration(ms)}</div>
-      </div>
-      <div className="leading-tight">
-        <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-500">Plyn den ~</div>
-        <div className="whitespace-nowrap text-xl font-semibold tabular-nums text-orange-300">{kg(gasKg(ms))}</div>
-      </div>
-      {batchSec !== null && (
-        <div className="leading-tight" title="Spotřeba plynu této dávky (od Start Roasting) při 0,5 kg/h">
-          <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-500">dávka ~</div>
-          <div className="whitespace-nowrap text-xl font-semibold tabular-nums text-orange-300">{kg(gasKg(batchSec * 1000))}</div>
-        </div>
-      )}
-      <div className="whitespace-nowrap text-xs text-zinc-400">{dávky(roasts ?? 0)}</div>
+    <div className={chip} title={title}>
+      <span>
+        {d.stoppedAt ? 'den ✓' : 'den'} <b className="tabular-nums text-zinc-100">{fmtDuration(ms).replace(/:\d\d$/, '')}</b>
+      </span>
+      <b className="tabular-nums text-orange-300">{kg(gasKg(ms))}</b>
       <Bottle ms={bottleMs} since={d.bottleResetAt} />
       {d.stoppedAt ? (
-        <button className={`${btn} bg-[var(--c-raised)] text-zinc-200`} onClick={() => startDay(Date.now(), 'manual')} title="Začít nový den ručně (jinak se spustí sám při nahřívání)">
+        <button className={`${btn} bg-[var(--c-raised)] text-zinc-200 hover:bg-[var(--c-active)]`} onClick={() => startDay(Date.now(), 'manual')} title="Začít nový den ručně (jinak se spustí sám při nahřívání)">
           Nový den
         </button>
       ) : (
         <button
-          className={`${btn} bg-rose-500 hover:bg-rose-400 text-white`}
+          className={`${btn} bg-rose-500 text-white hover:bg-rose-400`}
           onClick={async () => {
             if (await askConfirm('Ukončit den pražení?', { message: `${fmtDuration(ms)} · plyn ~${kg(gasKg(ms))} · ${dávky(roasts ?? 0)}`, okLabel: 'Ukončit den', danger: true }))
               void stopDay()

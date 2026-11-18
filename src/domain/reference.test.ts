@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EventType } from './events'
-import { deviation, referenceFrom, timeAtTemp, upcoming, valueAt } from './reference'
+import { deviation, nextControl, referenceFrom, timeAtTemp, upcoming, valueAt, type ReferenceCurve } from './reference'
 
 const ev = (type: EventType, t: number) => ({ id: type, type, t, bt: null, et: null })
 
@@ -47,5 +47,29 @@ describe('reference', () => {
     expect(u.control).toMatchObject({ t: 300, value: 4 })
     // FC already marked live (earlier than in the reference) → no longer announced
     expect(upcoming(ref, 450, ['FCs']).event).toBeNull()
+  })
+})
+
+describe('nextControl', () => {
+  const ref = {
+    label: 'r',
+    t: [],
+    bt: [],
+    et: [],
+    ror: [],
+    events: [],
+    controls: [
+      { t: 0, kind: 'gas', value: 5.5 },
+      { t: 240, kind: 'gas', value: 4.5 },
+      { t: 30, kind: 'air', value: 35 },
+      { t: 420, kind: 'gas', value: 4 },
+    ],
+  } as ReferenceCurve
+  it('gives the start value before CHARGE and the next change after that', () => {
+    expect(nextControl(ref, null, 'gas')).toEqual({ value: 5.5, inSec: null })
+    expect(nextControl(ref, 200, 'gas')).toEqual({ value: 4.5, inSec: 40 })
+    expect(nextControl(ref, 240, 'gas')).toEqual({ value: 4, inSec: 180 })
+    expect(nextControl(ref, 500, 'gas')).toBeNull()
+    expect(nextControl(ref, 10, 'drum')).toBeNull()
   })
 })

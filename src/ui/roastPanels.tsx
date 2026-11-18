@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import { addCoffee, emptyCoffee } from '../storage/coffees'
 import { db } from '../storage/db'
 import { profileChoice } from '../storage/profiles'
-import { EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
+import { CONTROL_UNIT, EVENT_LABEL, findEvent, nextExpected, type EventType, type RoastEvent } from '../domain/events'
 import { PHASE_COLOR, PHASE_TEXT, PHASE_LABEL, currentPhase, phaseProgress, phaseStats } from '../domain/phases'
-import { AIR_PRESETS, GAS_PRESETS, type RoastState } from '../live/roastStore'
+import { AIR_PRESETS, CONTROL_LIMITS, GAS_PRESETS, type RoastState } from '../live/roastStore'
 
 /** Drum speed knob 0–100, in steps of 5. */
 const DRUM_VALUES = Array.from({ length: 21 }, (_, i) => i * 5)
@@ -15,7 +15,6 @@ import { roast } from '../live/runtime'
 import { ClayButton } from './clay'
 import { fmtTime } from './LiveChart'
 import { SaveStatus } from './storageUi'
-import { DayTimer } from './DayTimer'
 import { SaveNewProfileButton, UpdateProfileButton } from './UpdateProfileButton'
 import { SuggestedProfileSave } from './SuggestedProfileSave'
 
@@ -339,67 +338,124 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
       <ClayButton variant="primary" onClick={() => void start()} disabled={!canStart} className="px-8 py-3 text-base">
         Start Roasting
       </ClayButton>
-      <DayTimer />
     </div>
   )
 }
 
 // ── manual control log (gas / air / drum) ──────────────────
 
-export function ControlsBar({ state, batchSec }: { state: RoastState; batchSec?: number | null }) {
+export type ControlPlan = Partial<Record<ControlKind, { value: number; inSec: number | null } | null>>
+
+/** Highlight a planned change this many seconds before it is due. */
+const PLAN_DUE_SEC = 15
+
+/**
+ * Control panel: per control a big current value with − / +, the fixed presets and – with a
+ * reference – what the plan sets next ("plán 4,0 za 0:35", lights up shortly before; click = take it).
+ */
+export function ControlsBar({ state, plan = null }: { state: RoastState; plan?: ControlPlan | null }) {
   const enabled = state.status === 'roasting'
   const c = state.current
   return (
-    <div className={`${CARD} flex items-center gap-4 overflow-x-auto px-3 py-1 ${enabled ? '' : '[&>*:not(:last-child)]:opacity-50'}`}>
-      <Presets label="Plyn" title="Plyn (kPa) · klávesy ↑ ↓" kind="gas" values={GAS_PRESETS} current={c.gas} enabled={enabled} />
-      <Presets label="Vzduch" title="Vzduch – Hot Air (%) · klávesy 1–5" kind="air" values={AIR_PRESETS} current={c.air} enabled={enabled} />
-      <label className="flex shrink-0 items-center gap-1.5 text-[0.6875rem] text-zinc-400" title="Rychlost bubnu (%) · klávesy [ ]">
-        Buben
-        <select
-          value={c.drum}
-          disabled={!enabled}
-          onChange={(e) => roast.setControl('drum', Number(e.target.value))}
-          className="rounded-lg bg-[var(--c-bg)] px-1.5 py-0.5 text-xs font-semibold tabular-nums text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
-        >
-          {DRUM_VALUES.map((v) => (
-            <option key={v} value={v}>
-              {v} %
-            </option>
-          ))}
-        </select>
-      </label>
-      <DayTimer batchSec={batchSec ?? null} compact />
-    </div>
-  )
-}
-
-/** Fixed values as a compact segmented control; the selected one has the same shade as its bar in the chart. */
-function Presets(props: { label: string; title: string; kind: ControlKind; values: number[]; current: number; enabled: boolean }) {
-  return (
-    <div className="flex shrink-0 items-center gap-1.5" title={props.title}>
-      <span className="text-[0.6875rem] text-zinc-400">{props.label}</span>
-      <div className="flex gap-px rounded-lg bg-[var(--c-bg)] p-0.5">
-        {props.values.map((v) => {
-          const active = props.current === v
-          return (
-            <button
-              key={v}
-              disabled={!props.enabled}
-              onClick={() => roast.setControl(props.kind, v)}
-              style={active ? { background: shade(props.kind, v), color: textOn(props.kind, v) } : undefined}
-              className={`min-w-7 rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums transition ${
- active ? '' : 'text-zinc-300 hover:bg-white/5'
- }`}
-            >
-              {formatControl(props.kind, v)}
-            </button>
-          )
-        })}
+    <div className={`${CARD} flex items-stretch gap-2 overflow-x-auto p-1.5 ${enabled ? '' : 'opacity-60'}`}>
+      <ControlBlock kind="gas" label="Plyn" presets={GAS_PRESETS} value={c.gas} plan={plan?.gas} showPlan={!!plan} enabled={enabled} keys="↑ ↓" />
+      <ControlBlock kind="air" label="Vzduch" presets={AIR_PRESETS} value={c.air} plan={plan?.air} showPlan={!!plan} enabled={enabled} keys="1–5" />
+      <div className="flex shrink-0 flex-col justify-center gap-1 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg)] px-2.5 py-1.5" title="Rychlost bubnu (%) · klávesy [ ]">
+        <div className="flex items-center gap-2">
+          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400">Buben</span>
+          <select
+            value={c.drum}
+            disabled={!enabled}
+            onChange={(e) => roast.setControl('drum', Number(e.target.value))}
+            className="h-9 rounded-md bg-[var(--c-surface)] px-2 text-base font-semibold tabular-nums text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
+          >
+            {DRUM_VALUES.map((v) => (
+              <option key={v} value={v}>
+                {v} %
+              </option>
+            ))}
+          </select>
+        </div>
+        {plan && <PlanLine kind="drum" plan={plan.drum} current={c.drum} enabled={enabled} />}
       </div>
     </div>
   )
 }
 
+function ControlBlock(props: {
+  kind: ControlKind
+  label: string
+  presets: number[]
+  value: number
+  plan?: { value: number; inSec: number | null } | null
+  showPlan: boolean
+  enabled: boolean
+  keys: string
+}) {
+  const { kind, value, enabled } = props
+  const step = CONTROL_LIMITS[kind].step
+  const due = !!props.plan && props.plan.inSec !== null && props.plan.inSec <= PLAN_DUE_SEC && props.plan.value !== value
+  const stepBtn = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--c-border)] bg-[var(--c-surface)] text-lg font-bold text-zinc-200 hover:bg-[var(--c-active)] disabled:opacity-40'
+  return (
+    <div
+      className={`flex min-w-0 flex-col justify-center gap-1 rounded-lg border bg-[var(--c-bg)] px-2.5 py-1.5 transition-colors ${due ? 'border-amber-400' : 'border-[var(--c-border)]'}`}
+      title={`${props.label} (${CONTROL_UNIT[kind]}) · klávesy ${props.keys}`}
+    >
+      <div className="flex items-center gap-2">
+        <span className="w-12 shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400">{props.label}</span>
+        <button className={stepBtn} disabled={!enabled} onClick={() => roast.setControl(kind, value - step)} aria-label={`${props.label} méně`}>
+          −
+        </button>
+        <span className="flex min-w-[5.5rem] items-baseline justify-center gap-1">
+          <span className="h-3 w-1.5 self-center rounded-full" style={{ background: shade(kind, value) }} />
+          <b className="text-2xl tabular-nums leading-none text-zinc-100">{formatControl(kind, value)}</b>
+          <span className="text-xs text-zinc-500">{CONTROL_UNIT[kind]}</span>
+        </span>
+        <button className={stepBtn} disabled={!enabled} onClick={() => roast.setControl(kind, value + step)} aria-label={`${props.label} více`}>
+          +
+        </button>
+        <div className="ml-1 flex gap-0.5">
+          {props.presets.map((v) => {
+            const active = value === v
+            return (
+              <button
+                key={v}
+                disabled={!enabled}
+                onClick={() => roast.setControl(kind, v)}
+                style={active ? { background: shade(kind, v), color: textOn(kind, v) } : undefined}
+                className={`h-8 min-w-9 rounded-md px-1.5 text-sm font-semibold tabular-nums transition-colors ${active ? '' : 'text-zinc-300 hover:bg-[var(--c-active)]'}`}
+              >
+                {formatControl(kind, v)}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      {props.showPlan && <PlanLine kind={kind} plan={props.plan} current={value} enabled={enabled} />}
+    </div>
+  )
+}
+
+/** "plán: 4,0 za 0:35" – the reference's next value; amber and pulsing shortly before it is due, click to take it. */
+function PlanLine({ kind, plan, current, enabled }: { kind: ControlKind; plan?: { value: number; inSec: number | null } | null; current: number; enabled: boolean }) {
+  if (!plan) return <span className="pl-14 text-[0.6875rem] text-zinc-600">plán: beze změny</span>
+  const done = plan.value === current
+  const due = plan.inSec !== null && plan.inSec <= PLAN_DUE_SEC && !done
+  const when = plan.inSec === null ? 'na start' : `za ${fmtTime(plan.inSec)}`
+  return (
+    <button
+      disabled={!enabled || done}
+      onClick={() => roast.setControl(kind, plan.value)}
+      title={done ? 'Už nastaveno' : 'Kliknutím nastavíš hodnotu z plánu'}
+      className={`ml-14 self-start rounded-full px-2 text-[0.6875rem] tabular-nums transition-colors ${
+        due ? 'animate-pulse bg-amber-400/20 font-bold text-amber-300' : done ? 'text-zinc-500' : 'text-zinc-400 hover:bg-[var(--c-active)] hover:text-zinc-100'
+      }`}
+    >
+      plán: <b>{formatControl(kind, plan.value)} {CONTROL_UNIT[kind]}</b> {when}
+      {done && ' ✓'}
+    </button>
+  )
+}
 
 // ── summary after Finish ───────────────────────────────────
 

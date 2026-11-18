@@ -107,3 +107,14 @@ export function startSettings(ref: ReferenceCurve): Partial<Record<ControlChange
   for (const c of [...ref.controls].sort((a, b) => a.t - b.t)) if (out[c.kind] === undefined) out[c.kind] = c.value
   return out
 }
+
+/**
+ * What the reference plans next for one control: before CHARGE (`roastTime` null) its starting
+ * value, later the next change after `roastTime` with the seconds until it. null when nothing follows.
+ */
+export function nextControl(ref: ReferenceCurve, roastTime: number | null, kind: ControlChange['kind']): { value: number; inSec: number | null } | null {
+  const list = ref.controls.filter((c) => c.kind === kind).sort((a, b) => a.t - b.t)
+  if (roastTime === null) return list.length ? { value: list[0].value, inSec: null } : null
+  const next = list.find((c) => c.t > roastTime)
+  return next ? { value: next.value, inSec: next.t - roastTime } : null
+}

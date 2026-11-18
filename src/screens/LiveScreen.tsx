@@ -8,8 +8,10 @@ import type { ConnectionState } from '../roaster/RoasterConnection'
 import { connectRoaster, disconnectRoaster, liveReading, roast, startReplay, stopReplay, useConnectionState, useLive, useRoastState } from '../live/runtime'
 import { CURVE_COLORS, LiveChart, fmtTime, type ChartOverlay } from '../ui/LiveChart'
 import { ClayButton } from '../ui/clay'
-import { ControlsBar, EventPanel, PhaseStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
+import { type ControlPlan, ControlsBar, EventPanel, PhaseStrip, StartBar, SummaryPanel } from '../ui/roastPanels'
 import { referenceState } from '../live/referenceState'
+import { nextControl } from '../domain/reference'
+import { DayTimer } from '../ui/DayTimer'
 import { estimates, useFcTarget } from '../live/estimates'
 import { MoreMenu, NavTabs } from '../ui/nav'
 import { DELETE, askNote } from '../ui/dialog'
@@ -18,11 +20,11 @@ import { DisplayToggle, ThemeToggle } from '../ui/theme'
 import { BackupChip, PersistError, RestoredBanner, UpdateToast } from '../ui/storageUi'
 
 const STATE: Record<ConnectionState, { label: string; dot: string }> = {
-  idle: { label: 'Nepřipojeno', dot: 'bg-zinc-500' },
+  idle: { label: 'Odpojeno', dot: 'bg-zinc-500' },
   connecting: { label: 'Připojuji…', dot: 'bg-amber-400' },
-  connected: { label: 'Pražička připojena', dot: 'bg-emerald-400' },
+  connected: { label: 'Připojeno', dot: 'bg-emerald-400' },
   reconnecting: {
-    label: 'Obnovuji spojení…',
+    label: 'Obnovuji…',
     dot: 'bg-amber-400 animate-pulse',
   },
 }
@@ -55,6 +57,13 @@ export function LiveScreen() {
   const roastTime = now === null ? null : charge ? (drop?.t ?? now) - charge.t : state.startT !== null ? now - state.startT : null
 
   const ref = referenceState.use()
+  const batchSec = state.startT !== null && now !== null ? (drop?.t ?? now) - state.startT : null
+  // what the reference sets next for gas / air / drum (start values before CHARGE)
+  const plan: ControlPlan | null = useMemo(() => {
+    if (!ref.curve) return null
+    const rt = charge && now !== null ? (drop?.t ?? now) - charge.t : null
+    return { gas: nextControl(ref.curve, rt, 'gas'), air: nextControl(ref.curve, rt, 'air'), drum: nextControl(ref.curve, rt, 'drum') }
+  }, [ref.curve, charge, drop, now])
   const dtrGoal = useMemo(() => dtrTarget(ref.curve?.events), [ref.curve])
   // small ↑ ↓ → next to the big numbers: change over the last 30 s
   const btTrend = trendOf(snap.t, snap.bt, 30, 0.3)
@@ -129,6 +138,7 @@ export function LiveScreen() {
         )}
         {error && <span className="text-sm text-rose-300">{error}</span>}
         <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
+          <DayTimer batchSec={batchSec} />
           <BackupChip />
           <DisplayToggle />
           <ThemeToggle />
@@ -138,8 +148,8 @@ export function LiveScreen() {
             </ClayButton>
           )}
           {conn === 'idle' ? (
-            <ClayButton size="sm" variant={state.status === 'roasting' ? 'default' : 'primary'} onClick={run(connectRoaster)} disabled={!supported}>
-              Připojit pražičku
+            <ClayButton size="sm" variant={state.status === 'roasting' ? 'default' : 'primary'} onClick={run(connectRoaster)} disabled={!supported} title="Připojit pražičku přes Bluetooth">
+              Připojit
             </ClayButton>
           ) : (
             <ClayButton size="sm" onClick={run(disconnectRoaster)}>
@@ -147,8 +157,8 @@ export function LiveScreen() {
             </ClayButton>
           )}
           {isReplay ? (
-            <ClayButton size="sm" onClick={() => stopReplay()}>
-              Zastavit přehrávání
+            <ClayButton size="sm" onClick={() => stopReplay()} title="Zastavit přehrávání záznamu">
+              Zastavit
             </ClayButton>
           ) : (
             <MoreMenu
@@ -253,7 +263,7 @@ export function LiveScreen() {
       {state.status === 'ready' ? (
         <StartBar state={state} canStart={snap.t.length > 0} />
       ) : (
-        <ControlsBar state={state} batchSec={state.startT !== null && now !== null ? (drop?.t ?? now) - state.startT : null} />
+        <ControlsBar state={state} plan={plan} />
       )}
     </div>
   )

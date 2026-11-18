@@ -14,9 +14,9 @@ export function BackupChip() {
   if (b.status === 'unsupported') return null
   if (b.status === 'ok')
     return (
-      <button className={chip} onClick={run(chooseBackupFolder)} title="Každé uložené pražení se zapíše jako soubor do této složky. Kliknutím změníš složku.">
+      <button className={chip} onClick={run(chooseBackupFolder)} title={`Záloha do složky „${b.folder}“: každé uložené pražení se zapíše jako soubor. Kliknutím změníš složku.`}>
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-        <span className="max-w-32 truncate">Záloha: {b.folder}</span>
+        Záloha
         {b.pending > 0 && <span className="text-amber-300">({b.pending} čeká)</span>}
       </button>
     )
