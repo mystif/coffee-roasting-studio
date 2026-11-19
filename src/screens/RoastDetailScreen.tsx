@@ -132,7 +132,7 @@ function Detail({ r }: { r: RoastRecord }) {
             <LiveChart snap={snap} overlay={overlay} follow={follow} onFollowChange={setFollow} onReady={(u) => (chart.current = u)} />
           </div>
           <div className="flex items-center gap-2">
-            <span className="mr-1 text-xs uppercase tracking-wide text-zinc-500">Export</span>
+            <span className="label-caps mr-1">Export</span>
             <ClayButton onClick={() => download(alogFileName(r), recordToAlog(r), 'text/plain')} title="Otevřeš v Artisanu (File → Open)">
               .alog (Artisan)
             </ClayButton>
@@ -312,9 +312,9 @@ function EditPanel({ r, onDelete }: { r: RoastRecord; onDelete: () => void }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-[var(--c-surface)] px-4 py-3 border border-[var(--c-border)]">
-      <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">{label}</div>
-      <div className="text-2xl font-semibold tabular-nums">{value}</div>
+    <div className="card rounded-xl bg-[var(--c-surface)] px-4 py-3 border border-[var(--c-border)]">
+      <div className="label-caps">{label}</div>
+      <div className="font-num text-2xl">{value}</div>
     </div>
   )
 }

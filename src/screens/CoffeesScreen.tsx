@@ -22,6 +22,7 @@ export function CoffeesScreen() {
   return (
     <Page
       title="Kávy"
+      count={coffees?.length ?? null}
       actions={
         <ClayButton variant="primary" onClick={() => setEditing('new')} disabled={editing === 'new'}>
           + Přidat kávu

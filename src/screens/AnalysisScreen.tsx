@@ -95,7 +95,7 @@ function Compare({ selected, all, ids, setIds }: { selected: RoastRecord[]; all:
           </div>
           <div className="overflow-auto">
             <table className="w-full text-sm">
-              <thead className="text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="label-caps">
                 <tr>
                   <th className="pb-2 text-left font-normal"></th>
                   {selected.map((r, i) => (
@@ -166,7 +166,7 @@ function Stats({ all, onCompare }: { all: RoastRecord[]; onCompare: (ids: string
       </div>
       <p className="text-xs text-zinc-500">Hodnota ± směrodatná odchylka. Čím menší rozptyl u stejné kávy, tím opakovatelnější pražení.</p>
       <table className="w-full text-sm tabular-nums">
-        <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+        <thead className="label-caps text-left">
           <tr>
             <th className="pb-2 font-normal">Káva</th>
             <th className="pb-2 text-right font-normal">Počet</th>

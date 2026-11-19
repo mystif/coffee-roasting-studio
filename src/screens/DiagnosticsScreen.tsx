@@ -87,11 +87,11 @@ export function DiagnosticsScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--c-bg)] text-zinc-100 p-6 font-sans">
+    <div className="min-h-screen text-zinc-100 p-6 font-sans">
       <div className="mx-auto max-w-6xl space-y-5">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Coffee Roasting Studio</h1>
+            <h1 className="font-brand text-2xl">Coffee Roasting Studio</h1>
             <p className="text-zinc-400 text-sm">Diagnostika připojení Dongyi BR-3.5 (pouze čtení) · <a className="underline" href="#/">zpět na pražení</a></p>
           </div>
           <div className="flex items-center gap-2 rounded-full bg-[var(--c-chip)] px-4 py-2 border border-[var(--c-border)]">

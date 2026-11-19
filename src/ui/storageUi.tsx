@@ -91,7 +91,7 @@ export function UpdateToast({ roasting }: { roasting: boolean }) {
   return (
     <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-lg bg-[var(--c-raised2)] px-5 py-3 text-sm border border-[var(--c-border)] shadow-[0_16px_48px_var(--sh)] ring-1 ring-white/10">
       Je připravená nová verze aplikace.
-      <button className="rounded-xl bg-sky-500 px-3 py-1.5 font-semibold text-sky-950" onClick={applyUpdate}>
+      <button className="btn-gloss rounded-lg bg-[var(--c-accent)] px-3 py-1.5 font-semibold text-[var(--c-accent-fg)]" onClick={applyUpdate}>
         Aktualizovat
       </button>
     </div>

@@ -95,7 +95,7 @@ export function DayTimer({ batchSec = null }: { batchSec?: number | null } = {})
         </button>
       ) : (
         <button
-          className={`${btn} bg-rose-500 text-white hover:bg-rose-400`}
+          className={`${btn} bg-rose-600 text-white hover:bg-rose-500`}
           onClick={async () => {
             if (await askConfirm('Ukončit den pražení?', { message: `${fmtDuration(ms)} · plyn ~${kg(gasKg(ms))} · ${dávky(roasts ?? 0)}`, okLabel: 'Ukončit den', danger: true }))
               void stopDay()

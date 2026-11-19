@@ -14,6 +14,7 @@ import { nextControl } from '../domain/reference'
 import { DayTimer } from '../ui/DayTimer'
 import { estimates, useFcTarget } from '../live/estimates'
 import { MoreMenu } from '../ui/nav'
+import flameIcon from '../ui/icons/nav-roast.svg?raw'
 import { DELETE, askNote } from '../ui/dialog'
 import { ChargeAlert } from '../ui/ChargeAlert'
 import { DisplayToggle, ThemeToggle } from '../ui/theme'
@@ -126,14 +127,14 @@ export function LiveScreen() {
   }
 
   return (
-    <div className="flex h-screen flex-col gap-2 bg-[var(--c-bg)] p-2.5 text-zinc-100">
+    <div className="flex h-screen flex-col gap-2 p-2.5 text-zinc-100">
       <header className="flex items-center gap-2">
         <h1 className="font-brand min-w-0 flex-1 truncate text-xl leading-tight" title={coffeeTitle ? `${coffeeTitle}${titleFromRef ? ' (podle reference)' : ''}` : undefined}>
-          {coffeeTitle || <span className="text-zinc-500">Vyber kávu nebo referenční profil</span>}
+          {coffeeTitle || <span className="font-sans text-sm font-medium text-zinc-500">Vyber kávu nebo referenční profil</span>}
           {state.greenWeightG && coffeeTitle ? <span className="ml-2 text-sm text-zinc-500">{String(state.greenWeightG / 1000).replace('.', ',')} kg</span> : null}
         </h1>
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--c-chip)] px-2.5 py-1 text-xs border border-[var(--c-border)]">
-          <span className={`h-2.5 w-2.5 rounded-full ${STATE[conn].dot}`} />
+          <span className={`h-2.5 w-2.5 rounded-full ${STATE[conn].dot} ${fresh ? 'live-dot' : ''}`} title={fresh ? 'Data z pražičky přicházejí' : undefined} />
           {STATE[conn].label}
         </div>
         {error && <span className="text-sm text-rose-300">{error}</span>}
@@ -209,8 +210,8 @@ export function LiveScreen() {
 
       <div className="flex min-h-0 flex-1 gap-3">
         <div
-          className="relative flex min-w-0 flex-1 flex-col rounded-lg border border-[var(--chart-border)] bg-[var(--c-chart)] p-3 pt-2 transition-shadow duration-700"
-          style={{ boxShadow: frame }}
+          className="relative flex min-w-0 flex-1 flex-col rounded-xl border border-[var(--chart-border)] bg-[var(--c-chart)] p-3 pt-2 transition-shadow duration-700"
+          style={{ boxShadow: `${frame ? `${frame}, ` : ''}inset 0 1px 0 var(--c-highlight)` }}
         >
           <PhaseStrip state={state} now={now} est={est} dtrGoal={dtrGoal} />
           <div className="relative min-h-0 flex-1">
@@ -240,7 +241,16 @@ export function LiveScreen() {
             </ClayButton>
           )}
           {snap.t.length === 0 && !ref.curve && (
-            <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500">Připoj pražičku. Graf se začne kreslit s prvním měřením.</p>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
+              <span className="h-12 w-12 text-[var(--c-accent)] [&>svg]:h-full [&>svg]:w-full" aria-hidden dangerouslySetInnerHTML={{ __html: flameIcon }} />
+              <p className="font-brand text-lg text-zinc-200">{conn === 'idle' ? 'Pražička není připojená' : 'Čekám na první měření…'}</p>
+              <p className="max-w-xs text-sm text-zinc-500">Graf se začne kreslit s prvním měřením BT a ET.</p>
+              {conn === 'idle' && supported && (
+                <ClayButton variant="primary" className="pointer-events-auto" onClick={run(connectRoaster)}>
+                  Připojit pražičku
+                </ClayButton>
+              )}
+            </div>
           )}
           {ref.curve && !charge && (
             <p className="pointer-events-none absolute left-16 top-14 rounded-lg bg-[var(--c-chart)]/90 px-2 py-1 text-xs text-zinc-400">
@@ -310,9 +320,9 @@ function Readout(props: { label: string; value?: number | null; text?: string; u
   const v = useTween(props.value ?? null) // numbers glide to the new value instead of jumping
   const display = props.text ?? (v == null ? '—' : v.toFixed(1))
   return (
-    <div className="rounded-xl bg-[var(--c-surface)] px-2 py-1 border border-[var(--c-border)]">
+    <div className="card rounded-xl bg-[var(--c-surface)] px-2 py-1 border border-[var(--c-border)]">
       <div className="flex items-baseline justify-between">
-        <span className="text-xs font-semibold tracking-wide" style={{ color: props.color }}>
+        <span className="label-caps" style={{ color: props.color }}>
           {props.label}
           {props.trend && (
             <span className="ml-1 text-sm font-bold" title={props.trend === 'up' ? 'roste (posledních 30 s)' : props.trend === 'down' ? 'klesá (posledních 30 s)' : 'stabilní (posledních 30 s)'}>
@@ -322,7 +332,7 @@ function Readout(props: { label: string; value?: number | null; text?: string; u
         </span>
         {props.unit && <span className="text-[0.625rem] text-zinc-500">{props.unit}</span>}
       </div>
-      <div className="text-[1.65rem] font-semibold leading-tight tabular-nums tracking-tight" style={{ color: props.color }}>
+      <div className="font-num text-[1.65rem] leading-tight" style={{ color: props.color }}>
         {display}
       </div>
     </div>

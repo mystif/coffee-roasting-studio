@@ -23,6 +23,11 @@
   --c-active: #24262c;
   --c-chart: #0f1013;
   --c-border: rgba(255, 255, 255, 0.08);
+  --c-highlight: rgba(255, 255, 255, 0.055); /* 1px light top edge of cards */
+  --c-bg-top: #121317; /* page background fades from this at the top */
+  --c-accent: #e3c27f; /* gold of the roastery logo: active / selected / focus */
+  --c-accent-fg: #1c1608;
+  --c-accent-ring: rgba(227, 194, 127, 0.45);
   --sh: rgba(0, 0, 0, 0.5);
   --sh-in: rgba(0, 0, 0, 0.45);
   --sh-soft: rgba(0, 0, 0, 0.25);
@@ -59,6 +64,11 @@
   --c-active: #eef0f3;
   --c-chart: #ffffff;
   --c-border: rgba(15, 18, 30, 0.1);
+  --c-highlight: rgba(255, 255, 255, 0.9);
+  --c-bg-top: #fbfbfc;
+  --c-accent: #a9802f;
+  --c-accent-fg: #ffffff;
+  --c-accent-ring: rgba(169, 128, 47, 0.4);
   --sh: rgba(15, 18, 30, 0.12);
   --sh-in: rgba(60, 66, 90, 0.1);
   --sh-soft: rgba(60, 66, 90, 0.1);
@@ -106,7 +116,8 @@
 }
 
 body {
-  background: var(--c-bg);
+  background: linear-gradient(180deg, var(--c-bg-top) 0, var(--c-bg) 420px) var(--c-bg);
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: 'cv11', 'ss01', 'ss03';
 }
@@ -188,4 +199,76 @@ textarea {
   font-family: Manrope, Inter, system-ui, sans-serif;
   font-weight: 800;
   letter-spacing: -0.01em;
+}
+
+/* ── design system bits ─────────────────────────────────── */
+
+/* big numbers (readouts, controls, DTR): Manrope Bold with tabular figures */
+.font-num {
+  font-family: Manrope, Inter, system-ui, sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* small section labels: one style everywhere */
+.label-caps {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-zinc-500);
+}
+
+/* cards: hairline border + a 1px lighter top edge ("inner light") */
+.card {
+  box-shadow: inset 0 1px 0 var(--c-highlight);
+}
+
+/* calm, quick state changes */
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+.page-in {
+  animation: page-in 0.15s ease-out;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+/* "live" status dot: soft pulse while data flows */
+.live-dot {
+  position: relative;
+}
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: inherit;
+  animation: ror-pulse 1.6s ease-out infinite;
+}
+
+/* gloss on the solid action buttons */
+.btn-gloss {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-in,
+  .live-dot::after {
+    animation: none;
+  }
 }

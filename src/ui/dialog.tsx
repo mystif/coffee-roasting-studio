@@ -74,14 +74,14 @@ export function DialogHost() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && text.trim() && accept()}
-            className="mt-4 w-full rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
+            className="mt-4 w-full rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]"
           />
         )}
         <div className="mt-5 flex justify-end gap-2">
           {r.deleteLabel && (
             <button
               onClick={() => close(DELETE)}
-              className="mr-auto rounded-lg bg-rose-500 hover:bg-rose-400 px-4 py-2.5 text-sm font-semibold text-white"
+              className="mr-auto rounded-lg btn-gloss bg-rose-600 hover:bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white"
             >
               {r.deleteLabel}
             </button>
@@ -96,7 +96,7 @@ export function DialogHost() {
             onClick={accept}
             disabled={r.kind === 'prompt' && !text.trim()}
             className={`rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-40 ${
- r.danger ? 'bg-rose-500 hover:bg-rose-400 text-white' : 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400'
+ r.danger ? 'btn-gloss bg-rose-600 hover:bg-rose-500 text-white' : 'btn-gloss bg-emerald-600 text-white hover:bg-emerald-500'
  }`}
           >
             {r.okLabel ?? (r.kind === 'alert' ? 'OK' : r.kind === 'prompt' ? 'Uložit' : 'Potvrdit')}

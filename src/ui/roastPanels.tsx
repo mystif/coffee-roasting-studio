@@ -19,7 +19,7 @@ import { SaveNewProfileButton, UpdateProfileButton } from './UpdateProfileButton
 import { SuggestedProfileSave } from './SuggestedProfileSave'
 
 const CARD =
-  'rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]'
+  'card rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]'
 
 export const parseKg = (s: string): number | null => {
   const v = Number(s.replace(',', '.').trim())
@@ -62,7 +62,7 @@ export function EventPanel({ state }: { state: RoastState }) {
               onClick={() => roast.mark(type)}
               className={`w-full rounded-xl px-2.5 py-1.5 text-left text-sm transition disabled:opacity-40 ${
  isNext
- ? 'bg-sky-500 text-white ring-1 ring-sky-300/40'
+ ? 'bg-[var(--c-accent)] text-[var(--c-accent-fg)] ring-1 ring-[var(--c-accent-ring)]'
  : e
  ? 'bg-[var(--c-raised2)] text-zinc-100'
  : 'bg-[var(--c-raised)] text-zinc-200'
@@ -131,7 +131,7 @@ export function EventPanel({ state }: { state: RoastState }) {
             } else if (e.key === 'Escape') setCustom(null)
           }}
           onBlur={() => setCustom(null)}
-          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-400/40"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]"
         />
       )}
       {roasting && <p className="px-1 text-[0.6875rem] leading-snug text-zinc-500">Tip: klikni na křivku BT v grafu – poznámka se uloží do toho místa.</p>}
@@ -184,7 +184,7 @@ export function PhaseStrip({
       {sec == null && estimate ? (
         hint(estimate)
       ) : (
-        <span className="whitespace-nowrap text-sm font-semibold tabular-nums text-zinc-100">
+        <span className="font-num whitespace-nowrap text-sm text-zinc-100">
           {sec == null ? '—' : fmtTime(sec)} <span className="text-zinc-400">{pct == null ? '' : `${pct.toFixed(0)} %`}</span>
         </span>
       )}
@@ -238,8 +238,8 @@ function DtrRing({ dtr, goal }: { dtr: number | null; goal: { target: number; fr
           style={{ transition: 'stroke-dashoffset .7s ease, stroke .3s' }}
         />
       </svg>
-      <span className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">DTR</span>
-      <span className="text-lg font-semibold tabular-nums">{dtr == null ? '—' : `${dtr.toFixed(1)} %`}</span>
+      <span className="label-caps">DTR</span>
+      <span className="font-num text-lg">{dtr == null ? '—' : `${dtr.toFixed(1)} %`}</span>
       <span className="text-[0.6875rem] tabular-nums text-zinc-500">/ {goal.target.toFixed(0)}</span>
     </div>
   )
@@ -248,8 +248,8 @@ function DtrRing({ dtr, goal }: { dtr: number | null; goal: { target: number; fr
 function Mini({ label, value, title }: { label: string; value: string; title?: string }) {
   return (
     <div className="flex items-baseline gap-1.5 whitespace-nowrap" title={title}>
-      <span className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">{label}</span>
-      <span className="text-lg font-semibold tabular-nums">{value}</span>
+      <span className="label-caps">{label}</span>
+      <span className="font-num text-lg">{value}</span>
     </div>
   )
 }
@@ -297,7 +297,7 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
           list="coffee-list"
           onChange={(e) => setCoffee(e.target.value)}
           placeholder={coffees?.length ? 'vyber nebo napiš název' : 'např. Colombia Huila'}
-          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]"
         />
         <datalist id="coffee-list">
           {coffees?.map((c) => (
@@ -312,7 +312,7 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
         <select
           value={refKey}
           onChange={(e) => chooseRef(e.target.value)}
-          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]"
         >
           <option value="">bez reference</option>
           {state.reference?.kind === 'roast' && <option value={refKey}>Pražení: {state.reference.label}</option>}
@@ -332,7 +332,7 @@ export function StartBar({ state, canStart }: { state: RoastState; canStart: boo
           onChange={(e) => setWeight(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && canStart && void start()}
           placeholder="3,0"
-          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base tabular-nums text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base tabular-nums text-zinc-100 outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]"
         />
       </label>
       <ClayButton variant="primary" onClick={() => void start()} disabled={!canStart} className="px-8 py-3 text-base">
@@ -362,12 +362,12 @@ export function ControlsBar({ state, plan = null }: { state: RoastState; plan?: 
       <ControlBlock kind="air" label="Vzduch" presets={AIR_PRESETS} value={c.air} plan={plan?.air} showPlan={!!plan} enabled={enabled} keys="1–5" />
       <div className="flex shrink-0 flex-col justify-center gap-1 rounded-lg border border-[var(--c-border)] bg-[var(--c-bg)] px-2.5 py-1.5" title="Rychlost bubnu (%) · klávesy [ ]">
         <div className="flex items-center gap-2">
-          <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400">Buben</span>
+          <span className="label-caps">Buben</span>
           <select
             value={c.drum}
             disabled={!enabled}
             onChange={(e) => roast.setControl('drum', Number(e.target.value))}
-            className="h-9 rounded-md bg-[var(--c-surface)] px-2 text-base font-semibold tabular-nums text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
+            className="h-9 rounded-md bg-[var(--c-surface)] px-2 text-base font-semibold tabular-nums text-zinc-100 outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]"
           >
             {DRUM_VALUES.map((v) => (
               <option key={v} value={v}>
@@ -402,13 +402,13 @@ function ControlBlock(props: {
       title={`${props.label} (${CONTROL_UNIT[kind]}) · klávesy ${props.keys}`}
     >
       <div className="flex items-center gap-2">
-        <span className="w-11 shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400">{props.label}</span>
+        <span className="label-caps w-11 shrink-0">{props.label}</span>
         <button className={stepBtn} disabled={!enabled} onClick={() => roast.setControl(kind, value - step)} aria-label={`${props.label} méně`}>
           −
         </button>
         <span className="flex min-w-[4.75rem] items-baseline justify-center gap-1">
           <span className="h-3 w-1.5 self-center rounded-full" style={{ background: shade(kind, value) }} />
-          <b className="text-2xl tabular-nums leading-none text-zinc-100">{formatControl(kind, value)}</b>
+          <b className="font-num text-2xl leading-none text-zinc-100">{formatControl(kind, value)}</b>
           <span className="text-xs text-zinc-500">{CONTROL_UNIT[kind]}</span>
         </span>
         <button className={stepBtn} disabled={!enabled} onClick={() => roast.setControl(kind, value + step)} aria-label={`${props.label} více`}>
@@ -423,7 +423,7 @@ function ControlBlock(props: {
                 disabled={!enabled}
                 onClick={() => roast.setControl(kind, v)}
                 style={active ? { background: shade(kind, v), color: textOn(kind, v) } : undefined}
-                className={`h-8 min-w-8 rounded-md px-1 text-sm font-semibold tabular-nums transition-colors ${active ? '' : 'text-zinc-300 hover:bg-[var(--c-active)]'}`}
+                className={`h-8 min-w-8 rounded-md px-1 text-sm font-semibold tabular-nums transition-colors ${active ? 'ring-2 ring-inset ring-[var(--c-accent)]' : 'text-zinc-300 hover:bg-[var(--c-active)]'}`}
               >
                 {formatControl(kind, v)}
               </button>
@@ -483,8 +483,8 @@ export function SummaryPanel({ state }: { state: RoastState }) {
     <div className={`${CARD} absolute inset-3 z-10 grid grid-cols-2 gap-6 overflow-auto bg-[var(--c-surface)]/95 p-5`}>
       <div className="flex flex-col gap-3">
       <div>
-        <p className="text-xs uppercase tracking-wide text-zinc-400">Vyhodnocení pražení</p>
-        <h2 className="text-xl font-semibold">{state.coffee || 'Bez názvu'}</h2>
+        <p className="label-caps">Vyhodnocení pražení</p>
+        <h2 className="font-brand text-xl">{state.coffee || 'Bez názvu'}</h2>
         <SaveStatus source={state.source} savedId={state.savedId} />
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
@@ -535,7 +535,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
               roast.update({ roastedWeightG: parseKg(e.target.value) })
             }}
             placeholder="2,55"
-            className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base tabular-nums outline-none focus:ring-2 focus:ring-sky-400/40"
+            className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-base tabular-nums outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]"
           />
         </label>
       </div>
@@ -561,7 +561,7 @@ export function SummaryPanel({ state }: { state: RoastState }) {
           value={state.notes}
           onChange={(e) => roast.update({ notes: e.target.value })}
           rows={3}
-          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40"
+          className="rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]"
         />
       </label>
       {state.source !== 'replay' && <SuggestedProfileSave state={state} />}
@@ -585,8 +585,8 @@ export function SummaryPanel({ state }: { state: RoastState }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-[var(--c-bg)] px-2 py-2">
-      <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-400">{label}</div>
-      <div className="text-xl font-semibold tabular-nums">{value}</div>
+      <div className="label-caps">{label}</div>
+      <div className="font-num text-xl">{value}</div>
     </div>
   )
 }

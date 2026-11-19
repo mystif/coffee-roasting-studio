@@ -14,7 +14,7 @@ import { Page, go, inputCls } from '../ui/nav'
 export function ProfilesScreen() {
   const profiles = useLiveQuery(() => db.profiles.orderBy('name').toArray(), [])
   return (
-    <Page title="Profily">
+    <Page title="Profily" count={profiles?.length ?? null}>
       <div className="grid max-w-5xl gap-3">
         {profiles?.length === 0 && (
           <p className="text-zinc-400">
@@ -126,7 +126,7 @@ function ProfileCard({ p }: { p: Profile }) {
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-[var(--c-bg)] px-3 py-2">
-      <div className="text-[0.6875rem] uppercase tracking-wide text-zinc-500">{label}</div>
+      <div className="label-caps">{label}</div>
       <div className="font-semibold">{value}</div>
     </div>
   )

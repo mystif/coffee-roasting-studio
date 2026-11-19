@@ -23,7 +23,7 @@ export default function App() {
   return (
     <>
       <div className="flex h-screen">
-        <div className="min-w-0 flex-1">
+        <div key={r.name} className="page-in min-w-0 flex-1">
           <ErrorBoundary resetKey={location.hash}>
             <Screen r={r} />
           </ErrorBoundary>

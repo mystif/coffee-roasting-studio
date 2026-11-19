@@ -52,6 +52,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
   return (
     <Page
       title="Historie pražení"
+      count={roasts ? rows.length : null}
       actions={
         <>
           <select
@@ -115,7 +116,7 @@ export function HistoryScreen({ coffeeId }: { coffeeId: string | null }) {
       )}
       {rows.length > 0 && (
         <table className="w-full border-separate border-spacing-y-1.5 text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="label-caps text-left">
             <tr>
               <th className="w-8 px-3 font-normal" title="Vyber 2–8 pražení k porovnání"></th>
               <th className="px-3 font-normal">Datum</th>

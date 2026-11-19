@@ -77,7 +77,7 @@ export function Sidebar() {
           active ? 'bg-[var(--c-active)] text-zinc-100' : 'text-zinc-500 hover:bg-[var(--c-raised)] hover:text-zinc-100'
         }`}
       >
-        {active && <span className="absolute -right-1.5 top-2 h-6 w-[3px] rounded-full bg-[var(--curve-bt)]" />}
+        {active && <span className="absolute -right-1.5 top-2 h-6 w-[3px] rounded-full bg-[var(--c-accent)]" />}
         <Icon svg={t.icon} />
         {t.href === '#/' && roast.status === 'roasting' && !active && (
           <span className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-rose-400" title="Pražení běží" />
@@ -98,9 +98,9 @@ export function Sidebar() {
 }
 
 /** Frame for the non-live screens (scrollable content). */
-export function Page({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
+export function Page({ title, count, actions, children }: { title: string; count?: number | null; actions?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex h-screen flex-col bg-[var(--c-bg)] text-zinc-100">
+    <div className="flex h-screen flex-col text-zinc-100">
       <header className="flex items-center gap-3 px-4 pt-4">
         <span className="font-brand mr-1 text-lg">Roasting Studio</span>
         <div className="ml-auto flex items-center gap-2">
@@ -110,7 +110,10 @@ export function Page({ title, actions, children }: { title: string; actions?: Re
         </div>
       </header>
       <div className="flex items-center justify-between px-6 pb-2 pt-5">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="font-brand text-2xl">
+          {title}
+          {count != null && <span className="ml-2 text-zinc-500">· {count}</span>}
+        </h1>
         <div className="flex gap-2">{actions}</div>
       </div>
       <main className="min-h-0 flex-1 overflow-auto px-6 pb-6">{children}</main>
@@ -119,7 +122,7 @@ export function Page({ title, actions, children }: { title: string; actions?: Re
 }
 
 export const inputCls =
-  'rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-sky-400/40'
+  'rounded-lg bg-[var(--c-bg)] px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-[var(--c-accent-ring)]'
 
 /** Small "⋯" menu for rarely used actions (keeps the roasting header uncluttered). */
 export function MoreMenu({ items }: { items: { label: string; hint?: string; onClick: () => void }[] }) {
