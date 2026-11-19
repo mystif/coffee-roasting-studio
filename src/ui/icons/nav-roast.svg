@@ -1,0 +1,11 @@
+<svg viewBox="0 0 1024 1024" fill="none" stroke="currentColor" stroke-width="85.333" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <g id="roasting-drum">
+    <path d="M704 213.333H341.333C235.295 213.333 149.333 299.295 149.333 405.333S235.295 597.333 341.333 597.333H704" />
+    <ellipse cx="704" cy="405.333" rx="170.667" ry="192" />
+    <path d="M704 405.333H896" />
+  </g>
+  <g id="stand">
+    <path d="M298.667 597.333 256 810.667M768 597.333 810.667 810.667" />
+  </g>
+  <path id="flame" d="M512 682.667C512 746.667 448 755.2 448 810.667A64 64 0 0 0 576 810.667C576 762.667 554.667 720 512 682.667Z" />
+</svg>

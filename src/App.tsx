@@ -7,7 +7,7 @@ import { LiveScreen } from './screens/LiveScreen'
 import { RoastDetailScreen } from './screens/RoastDetailScreen'
 import { ProfilesScreen } from './screens/ProfilesScreen'
 import { AnalysisScreen } from './screens/AnalysisScreen'
-import { useRoute } from './ui/nav'
+import { Sidebar, useRoute } from './ui/nav'
 import { ErrorBoundary } from './ui/ErrorBoundary'
 import { DialogHost } from './ui/dialog'
 
@@ -22,9 +22,14 @@ export default function App() {
   }, [r.name])
   return (
     <>
-      <ErrorBoundary resetKey={location.hash}>
-        <Screen r={r} />
-      </ErrorBoundary>
+      <div className="flex h-screen">
+        <div className="min-w-0 flex-1">
+          <ErrorBoundary resetKey={location.hash}>
+            <Screen r={r} />
+          </ErrorBoundary>
+        </div>
+        <Sidebar />
+      </div>
       <DialogHost />
     </>
   )

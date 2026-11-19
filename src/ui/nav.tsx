@@ -2,6 +2,12 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useRoastState } from '../live/runtime'
 import { BackupChip } from './storageUi'
 import { DisplayToggle, ThemeToggle } from './theme'
+import roastIcon from './icons/nav-roast.svg?raw'
+import historyIcon from './icons/nav-history.svg?raw'
+import analysisIcon from './icons/nav-analysis.svg?raw'
+import profilesIcon from './icons/nav-profiles.svg?raw'
+import coffeesIcon from './icons/nav-coffees.svg?raw'
+import diagnosticsIcon from './icons/nav-diagnostics.svg?raw'
 
 export type Route =
   | { name: 'live' }
@@ -39,36 +45,54 @@ export function useRoute(): Route {
   return r
 }
 
-const TABS: { href: string; label: string; match: Route['name'][] }[] = [
-  { href: '#/', label: 'Pražení', match: ['live'] },
-  { href: '#/historie', label: 'Historie', match: ['history', 'roast'] },
-  { href: '#/analyza', label: 'Analýza', match: ['analysis'] },
-  { href: '#/profily', label: 'Profily', match: ['profiles'] },
-  { href: '#/kavy', label: 'Kávy', match: ['coffees'] },
-]
 
-export function NavTabs() {
+const TABS: { href: string; label: string; icon: string; match: Route['name'][] }[] = [
+  { href: '#/', label: 'Pražení', icon: roastIcon, match: ['live'] },
+  { href: '#/historie', label: 'Historie', icon: historyIcon, match: ['history', 'roast'] },
+  { href: '#/analyza', label: 'Analýza', icon: analysisIcon, match: ['analysis'] },
+  { href: '#/profily', label: 'Profily', icon: profilesIcon, match: ['profiles'] },
+  { href: '#/kavy', label: 'Kávy', icon: coffeesIcon, match: ['coffees'] },
+]
+const DIAGNOSTICS = { href: '#/diagnostika', label: 'Diagnostika připojení', icon: diagnosticsIcon, match: ['diagnostics'] as Route['name'][] }
+
+/** Our own static icon files (stroke = currentColor), sized by the parent. */
+function Icon({ svg }: { svg: string }) {
+  return <span aria-hidden className="block h-[1.375rem] w-[1.375rem] [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+}
+
+/** Page navigation as a narrow icon bar on the right edge of the window (name on hover). */
+export function Sidebar() {
   const route = useRoute()
   const roast = useRoastState()
+  const item = (t: (typeof TABS)[number]) => {
+    const active = t.match.includes(route.name)
+    return (
+      <a
+        key={t.href}
+        href={t.href}
+        title={t.label}
+        aria-label={t.label}
+        aria-current={active ? 'page' : undefined}
+        className={`group relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+          active ? 'bg-[var(--c-active)] text-zinc-100' : 'text-zinc-500 hover:bg-[var(--c-raised)] hover:text-zinc-100'
+        }`}
+      >
+        {active && <span className="absolute -right-1.5 top-2 h-6 w-[3px] rounded-full bg-[var(--curve-bt)]" />}
+        <Icon svg={t.icon} />
+        {t.href === '#/' && roast.status === 'roasting' && !active && (
+          <span className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-rose-400" title="Pražení běží" />
+        )}
+        <span className="pointer-events-none absolute right-full mr-2 hidden whitespace-nowrap rounded-md border border-[var(--c-border)] bg-[var(--c-raised)] px-2 py-1 text-xs font-semibold text-zinc-100 shadow-[0_8px_24px_var(--sh)] group-hover:block">
+          {t.label}
+        </span>
+      </a>
+    )
+  }
   return (
-    <nav className="flex items-center gap-0.5 rounded-xl bg-[var(--c-bg)] p-0.5 border border-[var(--c-border)]">
-      {TABS.map((t) => {
-        const active = t.match.includes(route.name)
-        return (
-          <a
-            key={t.href}
-            href={t.href}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
- active ? 'bg-[var(--c-raised)] text-zinc-100' : 'text-zinc-400 hover:text-zinc-100'
- }`}
-          >
-            {t.label}
-            {t.href === '#/' && roast.status === 'roasting' && !active && (
-              <span className="h-2 w-2 animate-pulse rounded-full bg-rose-400" title="Pražení běží" />
-            )}
-          </a>
-        )
-      })}
+    <nav className="flex w-[3.25rem] shrink-0 flex-col items-center gap-1 border-l border-[var(--c-border)] bg-[var(--c-surface)] py-2.5">
+      <img src="./icon.svg" alt="Roasting Studio" title="Coffee Roasting Studio" className="mb-2 h-7 w-7" />
+      {TABS.map(item)}
+      <div className="mt-auto">{item(DIAGNOSTICS)}</div>
     </nav>
   )
 }
@@ -78,15 +102,11 @@ export function Page({ title, actions, children }: { title: string; actions?: Re
   return (
     <div className="flex h-screen flex-col bg-[var(--c-bg)] text-zinc-100">
       <header className="flex items-center gap-3 px-4 pt-4">
-        <span className="mr-1 text-lg font-semibold tracking-tight">Roasting Studio</span>
-        <NavTabs />
+        <span className="font-brand mr-1 text-lg">Roasting Studio</span>
         <div className="ml-auto flex items-center gap-2">
           <BackupChip />
           <DisplayToggle />
           <ThemeToggle />
-          <a href="#/diagnostika" className="px-2 text-sm text-zinc-500 hover:text-zinc-200">
-            Diagnostika
-          </a>
         </div>
       </header>
       <div className="flex items-center justify-between px-6 pb-2 pt-5">

@@ -182,3 +182,10 @@ textarea {
   gap: 1em;
   line-height: 1.45;
 }
+
+/* coffee name in the header: Manrope ExtraBold (bundled, works offline) */
+.font-brand {
+  font-family: Manrope, Inter, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}

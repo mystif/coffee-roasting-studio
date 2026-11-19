@@ -1,0 +1,7 @@
+<svg viewBox="0 0 1024 1024" fill="none" stroke="currentColor" stroke-width="85.333333" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <g id="analysis-icon">
+    <path id="axes" d="M170.667 213.333V789.333Q170.667 810.667 192 810.667H853.333" />
+    <path id="bars" d="M298.667 810.667V640H405.333V810.667M512 810.667V554.667H618.667V810.667M725.333 810.667V448H832V810.667" />
+    <path id="trend" d="M298.667 490.667L469.333 384H512L789.333 234.667" />
+  </g>
+</svg>

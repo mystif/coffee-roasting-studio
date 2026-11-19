@@ -1,0 +1,8 @@
+<svg viewBox="0 0 1024 1024" fill="none" stroke="currentColor" stroke-width="85.333333" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+  <g id="bluetooth">
+    <path d="M128 341.333333 469.333333 682.666667 298.666667 853.333333V170.666667L469.333333 341.333333 128 682.666667" />
+  </g>
+  <g id="diagnostic-pulse">
+    <path d="M597.333333 512H640L704 384 789.333333 640 853.333333 512H896" />
+  </g>
+</svg>

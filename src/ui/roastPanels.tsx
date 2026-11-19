@@ -402,11 +402,11 @@ function ControlBlock(props: {
       title={`${props.label} (${CONTROL_UNIT[kind]}) · klávesy ${props.keys}`}
     >
       <div className="flex items-center gap-2">
-        <span className="w-12 shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400">{props.label}</span>
+        <span className="w-11 shrink-0 text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-400">{props.label}</span>
         <button className={stepBtn} disabled={!enabled} onClick={() => roast.setControl(kind, value - step)} aria-label={`${props.label} méně`}>
           −
         </button>
-        <span className="flex min-w-[5.5rem] items-baseline justify-center gap-1">
+        <span className="flex min-w-[4.75rem] items-baseline justify-center gap-1">
           <span className="h-3 w-1.5 self-center rounded-full" style={{ background: shade(kind, value) }} />
           <b className="text-2xl tabular-nums leading-none text-zinc-100">{formatControl(kind, value)}</b>
           <span className="text-xs text-zinc-500">{CONTROL_UNIT[kind]}</span>
@@ -414,7 +414,7 @@ function ControlBlock(props: {
         <button className={stepBtn} disabled={!enabled} onClick={() => roast.setControl(kind, value + step)} aria-label={`${props.label} více`}>
           +
         </button>
-        <div className="ml-1 flex gap-0.5">
+        <div className="flex gap-px">
           {props.presets.map((v) => {
             const active = value === v
             return (
@@ -423,7 +423,7 @@ function ControlBlock(props: {
                 disabled={!enabled}
                 onClick={() => roast.setControl(kind, v)}
                 style={active ? { background: shade(kind, v), color: textOn(kind, v) } : undefined}
-                className={`h-8 min-w-9 rounded-md px-1.5 text-sm font-semibold tabular-nums transition-colors ${active ? '' : 'text-zinc-300 hover:bg-[var(--c-active)]'}`}
+                className={`h-8 min-w-8 rounded-md px-1 text-sm font-semibold tabular-nums transition-colors ${active ? '' : 'text-zinc-300 hover:bg-[var(--c-active)]'}`}
               >
                 {formatControl(kind, v)}
               </button>

@@ -13,7 +13,7 @@ import { referenceState } from '../live/referenceState'
 import { nextControl } from '../domain/reference'
 import { DayTimer } from '../ui/DayTimer'
 import { estimates, useFcTarget } from '../live/estimates'
-import { MoreMenu, NavTabs } from '../ui/nav'
+import { MoreMenu } from '../ui/nav'
 import { DELETE, askNote } from '../ui/dialog'
 import { ChargeAlert } from '../ui/ChargeAlert'
 import { DisplayToggle, ThemeToggle } from '../ui/theme'
@@ -57,6 +57,10 @@ export function LiveScreen() {
   const roastTime = now === null ? null : charge ? (drop?.t ?? now) - charge.t : state.startT !== null ? now - state.startT : null
 
   const ref = referenceState.use()
+  // header title: the coffee being roasted – primarily the reference's name (without its date), else the typed coffee
+  const refName = state.reference?.label.replace(/\s+·\s+[^·]*$/, '').trim() ?? ''
+  const titleFromRef = refName !== ''
+  const coffeeTitle = refName || state.coffee.trim()
   const batchSec = state.startT !== null && now !== null ? (drop?.t ?? now) - state.startT : null
   // what the reference sets next for gas / air / drum (start values before CHARGE)
   const plan: ControlPlan | null = useMemo(() => {
@@ -124,18 +128,14 @@ export function LiveScreen() {
   return (
     <div className="flex h-screen flex-col gap-2 bg-[var(--c-bg)] p-2.5 text-zinc-100">
       <header className="flex items-center gap-2">
-        <img src="./icon.svg" alt="Roasting Studio" className="h-6 w-6 shrink-0" />
-        <NavTabs />
+        <h1 className="font-brand min-w-0 flex-1 truncate text-xl leading-tight" title={coffeeTitle ? `${coffeeTitle}${titleFromRef ? ' (podle reference)' : ''}` : undefined}>
+          {coffeeTitle || <span className="text-zinc-500">Vyber kávu nebo referenční profil</span>}
+          {state.greenWeightG && coffeeTitle ? <span className="ml-2 text-sm text-zinc-500">{String(state.greenWeightG / 1000).replace('.', ',')} kg</span> : null}
+        </h1>
         <div className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-[var(--c-chip)] px-2.5 py-1 text-xs border border-[var(--c-border)]">
           <span className={`h-2.5 w-2.5 rounded-full ${STATE[conn].dot}`} />
           {STATE[conn].label}
         </div>
-        {state.status !== 'ready' && (
-          <span className="min-w-0 flex-1 truncate text-xs text-zinc-300" title={state.coffee}>
-            {state.coffee || 'Bez názvu'}
-            {state.greenWeightG ? ` · ${String(state.greenWeightG / 1000).replace('.', ',')} kg` : ''}
-          </span>
-        )}
         {error && <span className="text-sm text-rose-300">{error}</span>}
         <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap">
           <DayTimer batchSec={batchSec} />
