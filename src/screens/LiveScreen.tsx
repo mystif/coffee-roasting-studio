@@ -316,9 +316,18 @@ function useKeyboardShortcuts() {
   }, [])
 }
 
+const TREND_FLASH: Record<Trend, string> = { up: '#f97316', down: '#38bdf8', flat: '#a1a1aa' }
+
 function Readout(props: { label: string; value?: number | null; text?: string; unit?: string; color: string; trend?: Trend | null }) {
   const v = useTween(props.value ?? null) // numbers glide to the new value instead of jumping
   const display = props.text ?? (v == null ? '—' : v.toFixed(1))
+  // the number flashes in the colour of the new trend when the arrow changes
+  const prevTrend = useRef(props.trend ?? null)
+  const [flash, setFlash] = useState(0)
+  useEffect(() => {
+    if (props.trend && prevTrend.current && props.trend !== prevTrend.current) setFlash((f) => f + 1)
+    prevTrend.current = props.trend ?? null
+  }, [props.trend])
   return (
     <div className="card rounded-xl bg-[var(--c-surface)] px-2 py-1 border border-[var(--c-border)]">
       <div className="flex items-baseline justify-between">
@@ -333,7 +342,9 @@ function Readout(props: { label: string; value?: number | null; text?: string; u
         {props.unit && <span className="text-[0.625rem] text-zinc-500">{props.unit}</span>}
       </div>
       <div className="font-num text-[1.65rem] leading-tight" style={{ color: props.color }}>
-        {display}
+        <span key={flash} className={flash ? 'num-flash' : ''} style={{ '--flash': TREND_FLASH[props.trend ?? 'flat'] } as React.CSSProperties}>
+          {display}
+        </span>
       </div>
     </div>
   )

@@ -9,7 +9,7 @@ Monitorování a záznam pražení pro **Dongyi BR-3.5**. Aplikace pražičku **
 1. Zavři Artisan (port pražičky může mít otevřený jen jeden program).
 2. Otevři aplikaci v Chrome → **Připojit pražičku** → vyber `DY_MACHINE…` (jen poprvé; příště si ji Chrome pamatuje).
 3. Vyber kávu, referenční profil, zadej zelenou hmotnost → **Start Roasting**.
-4. Události: tlačítka vpravo nebo **mezerník** (Charge → Dry End → FC start → FC end → Drop). Charge, TP, Dry End (130 °C) a Drop se navrhnou i automaticky.
+4. Události: tlačítka vpravo nebo **mezerník** (Charge → Dry End → FC start → FC end → Drop). Charge, TP a Drop se navrhnou automaticky; Dry End (130 °C) jen při pražení podle referenčního profilu, jinak ho označíš ručně.
 5. Ruční záznam: **↑ ↓** plyn (kPa), **1–5** vzduch 25/35/50/65/75 %, **[ ]** buben, **⌘Z** zpět.
 6. **Finish** → zadej praženou hmotnost → pražení se uloží do Historie (a do složky zálohy).
 

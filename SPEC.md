@@ -60,7 +60,7 @@ Zdroj: tvoje `artisan-settings.aset` je shodné s oficiální předvolbou Artisa
 - **Události:**
   - Charge a Drop se rozpoznají automaticky podle skoku teploty (jako autoCharge/autoDrop) a lze je opravit.
   - TP se dopočítá.
-  - Dry End se navrhne při BT 130 °C (tvé nastavení fází) a lze ho přepsat ručně.
+  - Dry End se navrhne při BT 130 °C (tvé nastavení fází) jen při pražení podle referenčního profilu; bez reference ho označíš ručně. Vždy lze přepsat ručně.
   - FCs, FCe, SC a vlastní události se zadávají ručně.
 - **Fáze:**
   - Drying: Charge → Dry End

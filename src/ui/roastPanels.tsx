@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
+import { useCountUp } from './useTween'
 import { addCoffee, emptyCoffee } from '../storage/coffees'
 import { db } from '../storage/db'
 import { profileChoice } from '../storage/profiles'
@@ -171,7 +172,8 @@ export function PhaseStrip({
     ) : null
   const seg = (name: 'drying' | 'maillard' | 'development', sec: number | null, pct: number | null, estimate?: import('../live/estimates').Estimate) => (
     <div
-      className="relative flex min-w-0 items-center justify-between gap-2 overflow-hidden rounded-lg px-2.5 py-0.5"
+      key={`${name}-${phase === name}`}
+      className={`relative flex min-w-0 items-center justify-between gap-2 overflow-hidden rounded-lg px-2.5 py-0.5 ${phase === name ? 'phase-enter' : ''}`}
       style={{
         flexGrow: Math.max(pct ?? 0, 8),
         background: PHASE_COLOR[name] + (phase === name ? '33' : '1a'),
@@ -221,9 +223,17 @@ function DtrRing({ dtr, goal }: { dtr: number | null; goal: { target: number; fr
   const color = dtr == null ? 'var(--chart-axis)' : f > 1.08 ? 'var(--color-rose-400)' : f >= 0.92 ? 'var(--color-emerald-400)' : 'var(--color-amber-400)'
   const r = 9
   const c = 2 * Math.PI * r
+  // one pulse when the DTR reaches the target window
+  const reached = dtr != null && f >= 0.92
+  const was = useRef(reached)
+  const [pulse, setPulse] = useState(0)
+  useEffect(() => {
+    if (reached && !was.current) setPulse((p) => p + 1)
+    was.current = reached
+  }, [reached])
   return (
     <div className="flex items-center gap-1.5 whitespace-nowrap" title={`Cíl DTR ${goal.target.toFixed(1)} % (${goal.fromReference ? 'z reference' : 'výchozí'})`}>
-      <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
+      <svg key={pulse} viewBox="0 0 24 24" className={`h-6 w-6 -rotate-90 ${pulse ? 'dtr-pulse' : ''}`}>
         <circle cx="12" cy="12" r={r} fill="none" stroke="var(--c-border)" strokeWidth="3" />
         <circle
           cx="12"
@@ -408,7 +418,9 @@ function ControlBlock(props: {
         </button>
         <span className="flex min-w-[4.75rem] items-baseline justify-center gap-1">
           <span className="h-3 w-1.5 self-center rounded-full" style={{ background: shade(kind, value) }} />
-          <b className="font-num text-2xl leading-none text-zinc-100">{formatControl(kind, value)}</b>
+          <b key={value} className="bump font-num text-2xl leading-none text-zinc-100">
+            {formatControl(kind, value)}
+          </b>
           <span className="text-xs text-zinc-500">{CONTROL_UNIT[kind]}</span>
         </span>
         <button className={stepBtn} disabled={!enabled} onClick={() => roast.setControl(kind, value + step)} aria-label={`${props.label} více`}>
@@ -442,13 +454,15 @@ function PlanLine({ kind, plan, current, enabled }: { kind: ControlKind; plan?: 
   const done = plan.value === current
   const due = plan.inSec !== null && plan.inSec <= PLAN_DUE_SEC && !done
   const when = plan.inSec === null ? 'na start' : `za ${fmtTime(plan.inSec)}`
+  const fill = due ? Math.round((1 - plan.inSec! / PLAN_DUE_SEC) * 100) : 0 // fills up during the last 15 s
   return (
     <button
+      style={due ? { background: `linear-gradient(90deg, rgba(251,191,36,.4) ${fill}%, rgba(251,191,36,.1) ${fill}%)` } : undefined}
       disabled={!enabled || done}
       onClick={() => roast.setControl(kind, plan.value)}
       title={done ? 'Už nastaveno' : 'Kliknutím nastavíš hodnotu z plánu'}
       className={`ml-14 self-start rounded-full px-2 text-[0.6875rem] tabular-nums transition-colors ${
-        due ? 'animate-pulse bg-amber-400/20 font-bold text-amber-300' : done ? 'text-zinc-500' : 'text-zinc-400 hover:bg-[var(--c-active)] hover:text-zinc-100'
+        due ? 'font-bold text-amber-300' : done ? 'text-zinc-500' : 'text-zinc-400 hover:bg-[var(--c-active)] hover:text-zinc-100'
       }`}
     >
       plán: <b>{formatControl(kind, plan.value)} {CONTROL_UNIT[kind]}</b> {when}
@@ -488,9 +502,9 @@ export function SummaryPanel({ state }: { state: RoastState }) {
         <SaveStatus source={state.source} savedId={state.savedId} />
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
-        <Stat label="Celkem" value={stats ? fmtTime(stats.total) : '—'} />
-        <Stat label="DTR" value={stats?.dtr == null ? '—' : `${stats.dtr.toFixed(1)} %`} />
-        <Stat label="Ztráta" value={loss == null ? '—' : `${loss.toFixed(1)} %`} />
+        <CountStat label="Celkem" value={stats?.total ?? null} format={fmtTime} />
+        <CountStat label="DTR" value={stats?.dtr ?? null} format={(v) => `${v.toFixed(1)} %`} />
+        <CountStat label="Ztráta" value={loss} format={(v) => `${v.toFixed(1)} %`} />
       </div>
       <table className="w-full text-sm">
         <tbody>{(['CHARGE', 'TP', 'DRY', 'FCs', 'FCe', 'SC', 'DROP'] as EventType[]).map(row)}</tbody>
@@ -580,6 +594,12 @@ export function SummaryPanel({ state }: { state: RoastState }) {
       </div>
     </div>
   )
+}
+
+/** Summary number that counts up from zero when the summary opens. */
+function CountStat({ label, value, format }: { label: string; value: number | null; format: (v: number) => string }) {
+  const v = useCountUp(value)
+  return <Stat label={label} value={v == null ? '—' : format(v)} />
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

@@ -62,6 +62,12 @@ const curve = (label: string, scale: string, colorVar: string): uPlot.Series => 
   }
 }
 
+/** New events flash for this long (ms): brighter line, label fades in. */
+const FLASH_MS = 700
+/** event id → performance.now() when it first appeared (shared: only the live chart gets new events) */
+const flashes = new Map<string, number>()
+const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
 /** Zoom per scroll pixel (0.0015 → one mouse-wheel notch ≈ 9 %, a trackpad swipe zooms gently). */
 const ZOOM_SENSITIVITY = 0.0015
 const PAN_SENSITIVITY = 0.6
@@ -114,6 +120,7 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
   const overlayRef = useRef(overlay)
   overlayRef.current = overlay
   const laneSpaceRef = useRef(-1)
+  const seenEvents = useRef<Set<string> | null>(null)
   const clickRef = useRef({ onBtClick, onNoteClick })
   clickRef.current = { onBtClick, onNoteClick }
   const { theme } = themeState.use()
@@ -285,6 +292,21 @@ export function LiveChart({ snap, overlay, follow, onFollowChange, onReady, onBt
       u.setSize({ width: u.width, height: u.height }) // recompute padding for the lanes under the axis
     }
     u.setData([snap.t, snap.bt, snap.et, snap.ror] as uPlot.AlignedData, true)
+    // events that were not there before flash briefly (not the ones present when the chart opened)
+    const ids = overlay.events.map((e) => e.id)
+    if (seenEvents.current === null) seenEvents.current = new Set(ids)
+    const fresh = ids.filter((id) => !seenEvents.current!.has(id))
+    fresh.forEach((id) => seenEvents.current!.add(id))
+    if (fresh.length && !reducedMotion()) {
+      const t0 = performance.now()
+      fresh.forEach((id) => flashes.set(id, t0))
+      const tick = () => {
+        if (plot.current !== u) return
+        u.redraw(false, false)
+        if (performance.now() - t0 < FLASH_MS) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    }
   }, [snap, overlay, theme, display])
 
   return <div ref={wrap} className="h-full w-full" />
@@ -330,6 +352,8 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
   for (const e of [...o.events].sort((p, q) => p.t - q.t)) {
     const x = u.valToPos(e.t, 'x', true)
     if (x < left || x > left + width) continue
+    const since = flashes.has(e.id) ? performance.now() - flashes.get(e.id)! : Infinity
+    const flash = since < FLASH_MS ? 1 - since / FLASH_MS : 0 // 1 → 0 right after the event was marked
     ctx.strokeStyle = cssVar('--chart-event-line')
     ctx.setLineDash([4 * dpr, 4 * dpr])
     ctx.lineWidth = dpr
@@ -338,6 +362,20 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.lineTo(x, top + height)
     ctx.stroke()
     ctx.setLineDash([])
+    if (flash > 0) {
+      ctx.save()
+      ctx.strokeStyle = cssVar('--c-accent')
+      ctx.globalAlpha = flash
+      ctx.lineWidth = (1 + 3 * flash) * dpr
+      ctx.shadowColor = cssVar('--c-accent')
+      ctx.shadowBlur = 14 * dpr * flash
+      ctx.beginPath()
+      ctx.moveTo(x, top)
+      ctx.lineTo(x, top + height)
+      ctx.stroke()
+      ctx.restore()
+    }
+    ctx.globalAlpha = since < FLASH_MS ? Math.min(1, since / 250) : 1 // label fades in
     if (e.type === 'CUSTOM') continue // notes are labelled on the BT curve (drawNotes)
     const label = `${EVENT_SHORT[e.type]}${e.bt != null ? ' ' + e.bt.toFixed(1) + '°' : ''}`
     const w = ctx.measureText(label).width + 10 * dpr
@@ -349,7 +387,10 @@ function drawMarks(u: uPlot, o: ChartOverlay) {
     ctx.fillRect(x + 3 * dpr, y, w, 19 * dpr)
     ctx.fillStyle = e.auto ? cssVar('--chart-label-auto') : cssVar('--chart-label')
     ctx.fillText(label, x + 8 * dpr, y + 3 * dpr)
+    ctx.globalAlpha = 1
   }
+  ctx.globalAlpha = 1
+  drawLiveTail(u, o)
   drawControlBadges(u, o)
   drawNowLine(u, o)
   drawRorValue(u)
@@ -491,6 +532,10 @@ function drawControlBars(u: uPlot, o: ChartOverlay) {
       if (x1 <= x0) continue
       ctx.strokeStyle = shade(sgm.kind, sgm.value, lane.plan ? 0.75 : 0.95)
       ctx.lineWidth = (lane.plan ? PLAN_LINE_W : LINE_W) * dpr
+      // a change made in the last few seconds glows softly
+      const fresh = !lane.plan && o.now !== null && o.now - sgm.from >= 0 && o.now - sgm.from <= 3
+      ctx.shadowColor = shade(sgm.kind, sgm.value)
+      ctx.shadowBlur = fresh ? 10 * dpr : 0
       ctx.setLineDash(lane.plan ? [4 * dpr, 3 * dpr] : [])
       ctx.beginPath()
       ctx.moveTo(x0, y)
@@ -662,6 +707,8 @@ function drawEstimates(u: uPlot, o: ChartOverlay) {
 
 // ── reference events as badges on the reference BT curve ──
 const REF_POINTS = ['CHARGE', 'DRY', 'FCs', 'DROP'] as const
+/** A reference event lights up this many seconds before the live roast reaches its time. */
+const REF_GLOW_SEC = 30
 
 function drawRefPoints(u: uPlot, o: ChartOverlay) {
   const ref = o.reference
@@ -679,6 +726,10 @@ function drawRefPoints(u: uPlot, o: ChartOverlay) {
     const x = u.valToPos(zero + e.t, 'x', true)
     const y = u.valToPos(e.bt, 'temp', true)
     if (x < left || x > left + width) continue
+    const ahead = o.now === null || o.chargeT === null || findEvent(o.events, 'DROP') ? null : zero + e.t - o.now
+    const near = ahead !== null && ahead >= 0 && ahead <= REF_GLOW_SEC
+    ctx.shadowColor = cssVar('--curve-bt')
+    ctx.shadowBlur = near ? 14 * dpr : 0
     // hollow point on the dashed reference curve
     ctx.beginPath()
     ctx.arc(x, y, 4.5 * dpr, 0, Math.PI * 2)
@@ -700,12 +751,13 @@ function drawRefPoints(u: uPlot, o: ChartOverlay) {
     ctx.roundRect(bx, by, w, h, 6 * dpr)
     ctx.fillStyle = cssVar('--chart-label-bg')
     ctx.fill()
-    ctx.setLineDash([3 * dpr, 2 * dpr])
-    ctx.lineWidth = dpr
-    ctx.strokeStyle = cssVar('--chart-ref-bt')
+    ctx.setLineDash(near ? [] : [3 * dpr, 2 * dpr])
+    ctx.lineWidth = near ? 1.5 * dpr : dpr
+    ctx.strokeStyle = near ? cssVar('--curve-bt') : cssVar('--chart-ref-bt')
     ctx.stroke()
     ctx.setLineDash([])
-    ctx.fillStyle = cssVar('--chart-label-auto')
+    ctx.shadowBlur = 0
+    ctx.fillStyle = near ? cssVar('--chart-label') : cssVar('--chart-label-auto')
     ctx.fillText(label, bx + 7 * dpr, by + h / 2 + 0.5 * dpr)
   }
   ctx.restore()
@@ -897,4 +949,29 @@ function placeTip(u: uPlot, o: ChartOverlay) {
   const x = left + 16 + w > u.over.clientWidth ? left - 16 - w : left + 16
   tip.style.left = `${Math.max(0, x)}px`
   tip.style.top = `${Math.min(Math.max(0, top - h / 2), u.over.clientHeight - h)}px`
+}
+
+// ── the newest seconds of BT glow slightly: shows where the curve is being drawn ──
+function drawLiveTail(u: uPlot, o: ChartOverlay) {
+  if (o.chargeT === null || findEvent(o.events, 'DROP')) return
+  const t = u.data[0] as number[]
+  const bt = u.data[1] as (number | null)[]
+  const pts: [number, number][] = []
+  for (let i = bt.length - 1; i >= 0 && pts.length < 4 && t[t.length - 1] - t[i] <= 3; i--) {
+    const v = bt[i]
+    if (v != null) pts.unshift([u.valToPos(t[i], 'x', true), u.valToPos(v, 'temp', true)])
+  }
+  if (pts.length < 2) return
+  const ctx = u.ctx
+  const dpr = devicePixelRatio * chartScale()
+  ctx.save()
+  ctx.strokeStyle = cssVar('--curve-bt')
+  ctx.shadowColor = cssVar('--curve-bt')
+  ctx.shadowBlur = 12 * dpr
+  ctx.lineWidth = 3.5 * devicePixelRatio
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)))
+  ctx.stroke()
+  ctx.restore()
 }

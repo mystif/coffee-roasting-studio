@@ -95,4 +95,21 @@ describe('notes on the curve', () => {
     store.undo()
     expect(store.getSnapshot().events.some((e) => e.type === 'CUSTOM')).toBe(true)
   })
+
+  it('detects Dry End automatically only when roasting to a reference', () => {
+    const roastTo = (withReference: boolean) => {
+      const { store, feed } = setup()
+      if (withReference) store.update({ reference: { kind: 'profile', id: 'p', label: 'Profil' } })
+      feed(205, 10)
+      store.start({ coffee: '', greenWeightG: null })
+      for (let bt = 200; bt >= 95; bt -= 5) feed(bt) // charge drop
+      feed(95, 30) // turning point
+      for (let bt = 96; bt <= 140; bt += 0.5) feed(bt) // past 130 °C
+      return store.getSnapshot().events.map((e) => e.type)
+    }
+    expect(roastTo(true)).toEqual(expect.arrayContaining(['CHARGE', 'TP', 'DRY']))
+    const manual = roastTo(false)
+    expect(manual).toEqual(expect.arrayContaining(['CHARGE', 'TP']))
+    expect(manual).not.toContain('DRY')
+  })
 })

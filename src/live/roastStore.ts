@@ -233,7 +233,8 @@ export class RoastStore {
         tpIdx = i
       }
     }
-    if (tpIdx >= 0 && !has('DRY')) {
+    // Dry End automatically only when roasting to a reference profile; otherwise the roaster marks it
+    if (tpIdx >= 0 && !has('DRY') && s.reference) {
       const i = detectDry(snap.bt, tpIdx)
       if (i !== null) add.push(makeEvent('DRY', snap, i, true))
     }

@@ -39,7 +39,7 @@ const STYLE: Record<ChargeAlertLevel, string> = {
   idle: 'bg-[var(--c-surface)] text-zinc-300',
   heating: 'bg-[var(--c-surface)] text-zinc-300',
   near: 'bg-amber-400/15 text-amber-200 ring-1 ring-amber-400/50',
-  ready: 'bg-emerald-500/20 text-emerald-200 ring-2 ring-emerald-400 animate-pulse',
+  ready: 'glow-ready bg-emerald-500/20 text-emerald-200 ring-2 ring-emerald-400',
   over: 'bg-rose-500/15 text-rose-200 ring-1 ring-rose-400/60',
 }
 
